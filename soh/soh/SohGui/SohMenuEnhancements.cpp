@@ -1147,14 +1147,14 @@ void SohMenu::AddMenuEnhancements() {
     AddWidget(path, "Souls Features", WIDGET_SEPARATOR_TEXT);
     AddWidget(path, "Reinforced Club", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_SOULS_CLUB_NAME)
-        .Options(CheckboxOptions().Tooltip(
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
             "Swords are replaced by the Reinforced Club: heavy overhead smashes, a leaping slam while moving, "
             "and no sword trail. Turn off to return swords to vanilla behaviour.\n\n"
             "Note: the club's look comes from the reinforced_club*.o2r asset mods. Remove those from the mods "
             "folder to remove the model and icons as well."));
     AddWidget(path, "Stamina System", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_SOULS_STAMINA_NAME)
-        .Options(CheckboxOptions().Tooltip(
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
             "Dark Souls-style stamina: rolling, club attacks and blocking consume stamina, and a stamina bar "
             "is shown under the hearts. Holding the shield up slows recovery."));
 
