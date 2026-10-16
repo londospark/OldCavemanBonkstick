@@ -28,6 +28,7 @@
 #include "soh/Enhancements/randomizer/randomizer_entrance.h"
 #include "soh/Enhancements/randomizer/randomizer_grotto.h"
 #include "soh/frame_interpolation.h"
+#include "soh/Enhancements/Stamina.h"
 #include "soh/OTRGlobals.h"
 #include "soh/Enhancements/savestate_serialize.h"
 
@@ -6334,6 +6335,11 @@ void Player_SetupRoll(Player* this, PlayState* play) {
 
 s32 Player_TryRoll(Player* this, PlayState* play) {
     if ((this->controlStickDirections[this->controlStickDataIndex] == 0) && (sFloorType != 7)) {
+        // OldCavemanBonkstick: rolling costs stamina (Dark Souls-style).
+        if (!Stamina_TrySpend(STAMINA_COST_ROLL)) {
+            return false;
+        }
+
         Player_SetupRoll(this, play);
 
         return true;
@@ -11822,6 +11828,9 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
         sRollRecoveryTimer--;
     }
 
+    // OldCavemanBonkstick: Dark Souls-style stamina regeneration.
+    Stamina_Update();
+
     if (this->textboxBtnCooldownTimer != 0) {
         this->textboxBtnCooldownTimer--;
     }
@@ -15045,14 +15054,27 @@ s32 Player_ActionHandler_7(Player* this, PlayState* play) {
     if (func_8083C6B8(play, this) == 0) {
         if (func_8083BB20(this) != 0) {
             // OldCavemanBonkstick: the Reinforced Club replaces the swords.
-            // Standing attack -> heavy overhead smash; moving attack -> leaping jump slam.
+            // Standing attack -> overhead smash; moving attack -> leaping slam.
             if (((this->heldItemAction == PLAYER_IA_SWORD_KOKIRI) ||
                  (this->heldItemAction == PLAYER_IA_SWORD_MASTER) ||
                  (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) &&
                 (this->controlStickDirections[this->controlStickDataIndex] > PLAYER_STICK_DIR_NONE) &&
                 (sFloorType != 7)) {
+                // OldCavemanBonkstick: the moving attack is a heavier commitment.
+                if (!Stamina_TrySpend(STAMINA_COST_JUMP_ATTACK)) {
+                    return 0;
+                }
+
                 func_8083BA90(play, this, PLAYER_MWA_JUMPSLASH_START, 5.0f, 5.0f);
                 return 1;
+            }
+
+            // OldCavemanBonkstick: club attacks cost stamina (Dark Souls-style).
+            if (((this->heldItemAction == PLAYER_IA_SWORD_KOKIRI) ||
+                 (this->heldItemAction == PLAYER_IA_SWORD_MASTER) ||
+                 (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) &&
+                !Stamina_TrySpend(STAMINA_COST_ATTACK)) {
+                return 0;
             }
 
             s32 sp24 = func_80837818(this);

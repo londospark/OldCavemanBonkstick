@@ -18,6 +18,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/randomizer/randomizer_grotto.h"
 #include "soh/OTRGlobals.h"
+#include "soh/Enhancements/Stamina.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/gameplaystats.h"
 #include "soh/ObjectExtension/ActorMaximumHealth.h"
@@ -5102,6 +5103,47 @@ const char* digitTextures[] = { gCounterDigit0Tex, gCounterDigit1Tex, gCounterDi
                                 gCounterDigit2Tex, gCounterDigit3Tex, gCounterDigit4Tex, gCounterDigit5Tex,
                                 gCounterDigit6Tex, gCounterDigit7Tex, gCounterDigit8Tex };
 
+// OldCavemanBonkstick: Dark Souls-style stamina bar, drawn under the hearts/magic bar.
+void Interface_DrawStaminaBar(PlayState* play) {
+    static const s16 barWidth = 100;
+    static const s16 barHeight = 6;
+    s16 x;
+    s16 y;
+    s16 fill;
+    s32 stamina;
+
+    if (!Stamina_IsEnabled()) {
+        return;
+    }
+
+    OPEN_DISPS(play->state.gfxCtx);
+
+    Gfx_SetupDL_39Overlay(play->state.gfxCtx);
+
+    x = OTRGetRectDimensionFromLeftEdge(R_MAGIC_BAR_X + 4);
+    y = R_MAGIC_BAR_LARGE_Y + 22;
+    stamina = Stamina_Get();
+
+    // Bar background
+    gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 0, 0, 0, 160);
+    gDPLoadMultiBlock_4b(OVERLAY_DISP++, gMagicMeterFillTex, 0, G_TX_RENDERTILE, G_IM_FMT_I, 16, 16, 0,
+                         G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
+                         G_TX_NOLOD);
+    gSPWideTextureRectangle(OVERLAY_DISP++, x << 2, y << 2, (x + barWidth) << 2, (y + barHeight) << 2,
+                            G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
+
+    // Bar fill
+    fill = (s16)((barWidth * stamina) / STAMINA_MAX);
+    if (fill > 0) {
+        gDPPipeSync(OVERLAY_DISP++);
+        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 40, 215, 40, 255);
+        gSPWideTextureRectangle(OVERLAY_DISP++, x << 2, y << 2, (x + fill) << 2, (y + barHeight) << 2,
+                                G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
+    }
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
 void Interface_Draw(PlayState* play) {
     static s16 magicArrowEffectsR[] = { 255, 100, 255 };
     static s16 magicArrowEffectsG[] = { 0, 100, 255 };
@@ -5427,6 +5469,11 @@ void Interface_Draw(PlayState* play) {
 
         if (fullUi || gSaveContext.magicState > MAGIC_STATE_IDLE) {
             Interface_DrawMagicBar(play);
+        }
+
+        // OldCavemanBonkstick: Dark Souls-style stamina bar.
+        if (fullUi) {
+            Interface_DrawStaminaBar(play);
         }
 
         Minimap_Draw(play);
