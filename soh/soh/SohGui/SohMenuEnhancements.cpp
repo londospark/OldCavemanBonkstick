@@ -629,9 +629,10 @@ void SohMenu::AddMenuEnhancements() {
     AddWidget(path, "Skip Save Confirmation", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("SkipSaveConfirmation"))
         .Options(CheckboxOptions().Tooltip("Skip the \"Game Saved\" confirmation screen."));
-    AddWidget(path, "Link as Default File Name", WIDGET_CVAR_CHECKBOX)
+    AddWidget(path, "Blonk as Default File Name", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("LinkDefaultName"))
-        .Options(CheckboxOptions().Tooltip("Allows you to have \"Link\" as a premade file name."));
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
+            "Prefills the file name with \"Blonk\" when creating a new save."));
     AddWidget(path, "Spawn Bean Skulltula Faster", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("FasterBeanSkull"))
         .Options(CheckboxOptions().Tooltip(

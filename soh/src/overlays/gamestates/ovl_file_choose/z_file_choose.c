@@ -446,8 +446,10 @@ static s16 sLastFileChooseButtonIndex;
 void FileChoose_UpdateMainMenu(GameState* thisx) {
     static u8 emptyName[] = { 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E };
     static u8 emptyNameNES[] = { 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF };
-    static u8 linkName[] = { 0x15, 0x2C, 0x31, 0x2E, 0x3E, 0x3E, 0x3E, 0x3E };
-    static u8 linkNameNES[] = { 0xB6, 0xCD, 0xD2, 0xCF, 0xDF, 0xDF, 0xDF, 0xDF };
+    // OldCavemanBonkstick: the hero is Blonk. PAL and NTSC store names in different font
+    // encodings, so both defaults spell "Blonk".
+    static u8 linkName[] = { 0x0B, 0x2F, 0x32, 0x31, 0x2E, 0x3E, 0x3E, 0x3E };
+    static u8 linkNameNES[] = { 0xAC, 0xD0, 0xD3, 0xD2, 0xCF, 0xDF, 0xDF, 0xDF };
     static u8 linkNameJP[] = { 0x81, 0x87, 0x61, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF };
 
     FileChooseContext* this = (FileChooseContext*)thisx;
@@ -476,8 +478,8 @@ void FileChoose_UpdateMainMenu(GameState* thisx) {
                 this->charIndex = 0;
                 this->charBgAlpha = 0;
 
-                isDefaultNameOptionSet = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0);
-                this->newFileNameCharCount = isDefaultNameOptionSet ? 4 : 0;
+                isDefaultNameOptionSet = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 1);
+                this->newFileNameCharCount = isDefaultNameOptionSet ? 5 : 0;
                 this->nameEntryBoxPosX = 120;
                 this->nameEntryBoxAlpha = 0;
                 if (gSaveContext.language == LANGUAGE_JPN) { // Japanese
