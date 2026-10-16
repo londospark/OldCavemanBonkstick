@@ -5111,6 +5111,7 @@ void Interface_DrawStaminaBar(PlayState* play) {
     s16 y;
     s16 fill;
     s32 stamina;
+    s32 debt;
 
     if (!Stamina_IsEnabled()) {
         return;
@@ -5123,25 +5124,46 @@ void Interface_DrawStaminaBar(PlayState* play) {
     x = OTRGetRectDimensionFromLeftEdge(R_MAGIC_BAR_X + 8);
     y = R_MAGIC_BAR_SMALL_Y + 6;
     stamina = Stamina_Get();
-    if (stamina < 0) {
+    debt = stamina < 0;
+    if (debt) {
         stamina = 0;
     }
 
-    // Bar background
-    gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 0, 0, 0, 160);
+    // Frame: dark normally, red while in stamina debt
+    if (debt) {
+        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 190, 40, 40, 235);
+    } else {
+        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 0, 0, 0, 220);
+    }
     gDPLoadMultiBlock_4b(OVERLAY_DISP++, gMagicMeterFillTex, 0, G_TX_RENDERTILE, G_IM_FMT_I, 16, 16, 0,
                          G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
                          G_TX_NOLOD);
+    gSPWideTextureRectangle(OVERLAY_DISP++, (x - 1) << 2, (y - 1) << 2, (x + barWidth + 1) << 2,
+                            (y + barHeight + 1) << 2, G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
+
+    // Track
+    gDPPipeSync(OVERLAY_DISP++);
+    gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 30, 36, 30, 200);
     gSPWideTextureRectangle(OVERLAY_DISP++, x << 2, y << 2, (x + barWidth) << 2, (y + barHeight) << 2,
                             G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
 
-    // Bar fill
+    // Fill: green, shifting to amber when running low
     fill = (s16)((barWidth * stamina) / Stamina_GetMax());
     if (fill > 0) {
         gDPPipeSync(OVERLAY_DISP++);
-        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 40, 215, 40, 255);
+        if (stamina * 100 < Stamina_GetMax() * 30) {
+            gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 230, 160, 40, 255);
+        } else {
+            gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 60, 200, 60, 255);
+        }
         gSPWideTextureRectangle(OVERLAY_DISP++, x << 2, y << 2, (x + fill) << 2, (y + barHeight) << 2,
                                 G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
+
+        // 1px highlight along the top of the fill for a bit of depth
+        gDPPipeSync(OVERLAY_DISP++);
+        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 150, 255, 150, 170);
+        gSPWideTextureRectangle(OVERLAY_DISP++, x << 2, y << 2, (x + fill) << 2, (y + 1) << 2, G_TX_RENDERTILE, 0, 0,
+                                1 << 10, 1 << 10);
     }
 
     CLOSE_DISPS(play->state.gfxCtx);

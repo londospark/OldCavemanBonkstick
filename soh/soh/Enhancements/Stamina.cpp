@@ -12,8 +12,8 @@ extern SaveContext gSaveContext;
 // Dark Souls-like tuning.
 //   regen:  ~1.05/frame @ 20fps -> ~21/s (DS1 base is about this)
 //   delay:  short pause after spending before full regen resumes
-#define STAMINA_REGEN_PER_TICK 1.05f
-#define STAMINA_REGEN_DELAY 12
+#define STAMINA_REGEN_PER_TICK 0.7f
+#define STAMINA_REGEN_DELAY 18
 #define STAMINA_REGEN_SHIELD_FACTOR 0.2f // regen multiplier while the shield is held up
 
 static float sStamina = (float)STAMINA_MAX_CHILD;
