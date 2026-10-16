@@ -40,10 +40,6 @@
 // This is called "adjusted" for now.
 #define PLAYER_ANIM_ADJUSTED_SPEED (2.0f / 3.0f)
 
-// OldCavemanBonkstick: the Reinforced Club is a hammer-class weapon. Its swings are played
-// slower than a sword's so the club reads as heavy and deliberate rather than a light swoosh.
-#define PLAYER_CLUB_SWING_SPEED (0.5f)
-
 typedef enum {
     /* 0x00 */ KNOB_ANIM_ADULT_L,
     /* 0x01 */ KNOB_ANIM_CHILD_L,
@@ -4441,13 +4437,7 @@ void func_80837948(PlayState* play, Player* this, s32 arg2) {
 
     this->meleeWeaponAnimation = arg2;
 
-    // OldCavemanBonkstick: the club (in the sword slot) swings slower/heavier than a sword.
-    if ((this->heldItemAction == PLAYER_IA_SWORD_KOKIRI) || (this->heldItemAction == PLAYER_IA_SWORD_MASTER) ||
-        (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) {
-        LinkAnimation_PlayOnceSetSpeed(play, &this->skelAnime, D_80854190[arg2].unk_00, PLAYER_CLUB_SWING_SPEED);
-    } else {
-        Player_AnimPlayOnceAdjusted(play, this, D_80854190[arg2].unk_00);
-    }
+    Player_AnimPlayOnceAdjusted(play, this, D_80854190[arg2].unk_00);
     if ((arg2 != PLAYER_MWA_FLIPSLASH_START) && (arg2 != PLAYER_MWA_JUMPSLASH_START)) {
         Player_StartAnimMovement(play, this, 0x209);
     }
@@ -15041,8 +15031,7 @@ s32 Player_ActionHandler_7(Player* this, PlayState* play) {
                  (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) &&
                 (this->controlStickDirections[this->controlStickDataIndex] > PLAYER_STICK_DIR_NONE) &&
                 (sFloorType != 7)) {
-                // OldCavemanBonkstick: moving attack is a heavy leaping overhead smash, not a sword slash.
-                func_8083BA90(play, this, PLAYER_MWA_HAMMER_FORWARD, 5.0f, 5.0f);
+                func_8083BA90(play, this, PLAYER_MWA_JUMPSLASH_START, 5.0f, 5.0f);
                 return 1;
             }
 

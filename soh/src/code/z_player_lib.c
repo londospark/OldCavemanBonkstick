@@ -1575,8 +1575,12 @@ void func_800906D4(PlayState* play, Player* this, Vec3f* newTipPos) {
     Matrix_MultVec3f(&D_801260A4[1], &newBasePos[1]);
     Matrix_MultVec3f(&D_801260A4[2], &newBasePos[2]);
 
+    // OldCavemanBonkstick: the Reinforced Club replaces the swords. Suppress the sword trail
+    // (a thin blade-shaped streak) so swings read as a heavy club rather than a sword swooshing.
     if (func_80090480(play, NULL, &this->meleeWeaponInfo[0], &newTipPos[0], &newBasePos[0]) &&
         !(this->stateFlags1 & PLAYER_STATE1_SHIELDING) &&
+        !((this->heldItemAction == PLAYER_IA_SWORD_KOKIRI) || (this->heldItemAction == PLAYER_IA_SWORD_MASTER) ||
+          (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) &&
         !CVarGetInteger(CVAR_ENHANCEMENT("DisableLinkSwordTrail"), 0)) {
         EffectBlure_AddVertex(Effect_GetByIndex(this->meleeWeaponEffectIndex), &this->meleeWeaponInfo[0].tip,
                               &this->meleeWeaponInfo[0].base);
