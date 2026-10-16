@@ -14,7 +14,7 @@ extern SaveContext gSaveContext;
 #define STAMINA_REGEN_PER_TICK 0.7f
 #define STAMINA_REGEN_DELAY 18
 #define STAMINA_REGEN_SHIELD_FACTOR 0.2f // regen multiplier while the shield is held up
-#define STAMINA_REGEN_DEBT_FACTOR 0.35f  // recovering from negative is much slower
+#define STAMINA_REGEN_DEBT_RATE 0.5f     // per tick while in debt (~10/s, slower than an empty bar)
 
 static float sStamina = (float)STAMINA_MAX_CHILD;
 static short sRegenDelay = 0;
@@ -57,14 +57,17 @@ void Stamina_Update(int shielding) {
     }
 
     if (sStamina < (float)Stamina_GetMax()) {
-        float rate = (sRegenDelay > 0) ? (STAMINA_REGEN_PER_TICK * 0.35f) : STAMINA_REGEN_PER_TICK;
-        if (shielding) {
-            // Holding the shield up makes stamina recover much more slowly.
-            rate *= STAMINA_REGEN_SHIELD_FACTOR;
-        }
+        float rate;
         if (sStamina < 0.0f) {
-            // Climbing out of debt takes much longer than topping up an empty bar.
-            rate *= STAMINA_REGEN_DEBT_FACTOR;
+            // Climbing out of debt has its own fixed rate. It doesn't stack with the post-spend pause,
+            // so a few rolls don't leave you stuck below zero.
+            rate = STAMINA_REGEN_DEBT_RATE;
+        } else {
+            rate = (sRegenDelay > 0) ? (STAMINA_REGEN_PER_TICK * 0.35f) : STAMINA_REGEN_PER_TICK;
+            if (shielding) {
+                // Holding the shield up makes stamina recover much more slowly.
+                rate *= STAMINA_REGEN_SHIELD_FACTOR;
+            }
         }
         sStamina += rate;
         if (sStamina > (float)Stamina_GetMax()) {
