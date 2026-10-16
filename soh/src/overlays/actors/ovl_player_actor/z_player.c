@@ -2858,7 +2858,8 @@ s32 Player_UpperAction_ChangeHeldItem(Player* this, PlayState* play) {
 s32 func_80834B5C(Player* this, PlayState* play) {
     LinkAnimation_Update(play, &this->upperSkelAnime);
 
-    if (!CHECK_BTN_ALL(sControlInput->cur.button, BTN_R)) {
+    // OldCavemanBonkstick: stamina debt drops a raised shield.
+    if (!CHECK_BTN_ALL(sControlInput->cur.button, BTN_R) || !Stamina_CanAct()) {
         func_80834894(this);
         return true;
     } else {
@@ -6502,8 +6503,9 @@ s32 Player_ActionHandler_11(Player* this, PlayState* play) {
     LinkAnimationHeader* anim;
     f32 frame;
 
+    // OldCavemanBonkstick: the shield can't be raised while in stamina debt.
     if ((play->shootingGalleryStatus == 0) && (this->currentShield != PLAYER_SHIELD_NONE) &&
-        CHECK_BTN_ALL(sControlInput->cur.button, BTN_R) &&
+        CHECK_BTN_ALL(sControlInput->cur.button, BTN_R) && Stamina_CanAct() &&
         (Player_IsChildWithHylianShield(this) ||
          (!Player_FriendlyLockOnOrParallel(this) && (this->focusActor == NULL)))) {
 
