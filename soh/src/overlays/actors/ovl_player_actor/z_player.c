@@ -40,6 +40,16 @@
 // This is called "adjusted" for now.
 #define PLAYER_ANIM_ADJUSTED_SPEED (2.0f / 3.0f)
 
+// OldCavemanBonkstick: Dark Souls-style roll. The roll gets a tight, reliable window of
+// invulnerability like a Dark Souls "medium load" roll, but it can't be spammed for permanent
+// protection -- chaining rolls strips the i-frames until the player has recovered.
+#define PLAYER_ROLL_IFRAME_START 3.0f // roll animation frame where the i-frames begin
+#define PLAYER_ROLL_IFRAMES 8         // i-frame duration (~0.4s @ 20fps; DS medium is ~0.37s)
+#define PLAYER_ROLL_RECOVERY 20       // frames after a roll before the next roll gets i-frames
+
+static s16 sRollRecoveryTimer = 0;    // counts down after each roll
+static s8 sRollHasIFrames = 1;        // whether the current roll grants i-frames
+
 typedef enum {
     /* 0x00 */ KNOB_ANIM_ADULT_L,
     /* 0x01 */ KNOB_ANIM_CHILD_L,
@@ -6316,6 +6326,10 @@ void Player_SetupRoll(Player* this, PlayState* play) {
                                    GET_PLAYER_ANIM(PLAYER_ANIMGROUP_landing_roll, this->modelAnimType),
                                    1.25f * sWaterSpeedFactor);
     gSaveContext.ship.stats.count[COUNT_ROLLS]++;
+
+    // OldCavemanBonkstick: only grant i-frames if this isn't a chained (spam) roll.
+    sRollHasIFrames = (sRollRecoveryTimer == 0);
+    sRollRecoveryTimer = PLAYER_ROLL_RECOVERY;
 }
 
 s32 Player_TryRoll(Player* this, PlayState* play) {
@@ -9781,8 +9795,9 @@ void Player_Action_Roll(Player* this, PlayState* play) {
     ocCollidedActor = NULL;
     animDone = LinkAnimation_Update(play, &this->skelAnime);
 
-    if (LinkAnimation_OnFrame(&this->skelAnime, 8.0f)) {
-        Player_SetInvulnerability(this, -10);
+    // OldCavemanBonkstick: Dark Souls-style roll i-frames (skipped while spam-rolling).
+    if (sRollHasIFrames && LinkAnimation_OnFrame(&this->skelAnime, PLAYER_ROLL_IFRAME_START)) {
+        Player_SetInvulnerability(this, -PLAYER_ROLL_IFRAMES);
     }
 
     if (!func_80842964(this, play)) {
@@ -11800,6 +11815,11 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
 
     if (this->unk_A73 != 0) {
         this->unk_A73--;
+    }
+
+    // OldCavemanBonkstick: roll i-frame recovery timer.
+    if (sRollRecoveryTimer != 0) {
+        sRollRecoveryTimer--;
     }
 
     if (this->textboxBtnCooldownTimer != 0) {
