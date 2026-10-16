@@ -25,8 +25,10 @@ extern "C" {
 #define STAMINA_DEBT_FLOOR (-50)
 
 #define STAMINA_COST_ROLL 25
-#define STAMINA_COST_ATTACK 20
-#define STAMINA_COST_JUMP_ATTACK 35
+#define STAMINA_COST_ATTACK 25
+#define STAMINA_COST_JUMP_ATTACK 65
+#define STAMINA_COST_JUMP_ATTACK_CHAIN 45 // a jump attack made soon after another
+#define STAMINA_JUMP_CHAIN_WINDOW 40 // frames (~2s @ 20fps) that count as "quick succession"
 #define STAMINA_COST_BLOCK 12 // base cost, plus the incoming damage
 
 // per-frame regeneration tick. Shielding slows regeneration a lot; debt slows it further.
@@ -46,6 +48,10 @@ int Stamina_IsInDebt(void);
 
 // whether any stamina-consuming action or raising the shield may start right now
 int Stamina_CanAct(void);
+
+// Jump attack: costs STAMINA_COST_JUMP_ATTACK, or STAMINA_COST_JUMP_ATTACK_CHAIN if another
+// jump attack landed within STAMINA_JUMP_CHAIN_WINDOW frames. Same rules as Stamina_TrySpend.
+int Stamina_TrySpendJumpAttack(void);
 
 // Roll/attack: allowed whenever stamina is above zero (can go into debt).
 // Returns 0 (action blocked) when stamina is zero or already in debt.

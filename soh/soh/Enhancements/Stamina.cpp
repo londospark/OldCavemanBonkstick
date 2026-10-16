@@ -18,6 +18,7 @@ extern SaveContext gSaveContext;
 
 static float sStamina = (float)STAMINA_MAX_CHILD;
 static short sRegenDelay = 0;
+static short sJumpChainTimer = 0;
 
 int Stamina_IsEnabled(void) {
     return CVarGetInteger(CVAR_STAMINA_NAME, 1);
@@ -41,6 +42,10 @@ int Stamina_CanAct(void) {
 }
 
 void Stamina_Update(int shielding) {
+    if (sJumpChainTimer > 0) {
+        sJumpChainTimer--;
+    }
+
     if (!Stamina_IsEnabled()) {
         sStamina = (float)STAMINA_MAX_ADULT;
         sRegenDelay = 0;
@@ -66,6 +71,16 @@ void Stamina_Update(int shielding) {
             sStamina = (float)Stamina_GetMax();
         }
     }
+}
+
+int Stamina_TrySpendJumpAttack(void) {
+    int cost = (sJumpChainTimer > 0) ? STAMINA_COST_JUMP_ATTACK_CHAIN : STAMINA_COST_JUMP_ATTACK;
+    if (!Stamina_TrySpend(cost)) {
+        return 0;
+    }
+    // Only a jump attack that actually goes through starts the chain window.
+    sJumpChainTimer = STAMINA_JUMP_CHAIN_WINDOW;
+    return 1;
 }
 
 int Stamina_TrySpend(int cost) {

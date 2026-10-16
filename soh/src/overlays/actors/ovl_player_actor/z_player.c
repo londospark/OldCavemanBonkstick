@@ -15077,7 +15077,7 @@ s32 Player_ActionHandler_7(Player* this, PlayState* play) {
                 (this->controlStickDirections[this->controlStickDataIndex] > PLAYER_STICK_DIR_NONE) &&
                 (sFloorType != 7)) {
                 // OldCavemanBonkstick: the moving attack is a heavier commitment.
-                if (!Stamina_TrySpend(STAMINA_COST_JUMP_ATTACK)) {
+                if (!Stamina_TrySpendJumpAttack()) {
                     return 0;
                 }
 
