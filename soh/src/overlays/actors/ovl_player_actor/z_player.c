@@ -4363,8 +4363,7 @@ s32 func_80837818(Player* this) {
 
     // OldCavemanBonkstick: the Reinforced Club replaces the swords and swings like the
     // Megaton Hammer -- heavy vertical overhead smashes with hammer weight (Dark Souls-like).
-    if ((this->heldItemAction == PLAYER_IA_HAMMER) || (this->heldItemAction == PLAYER_IA_SWORD_KOKIRI) ||
-        (this->heldItemAction == PLAYER_IA_SWORD_MASTER) || (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) {
+    if ((this->heldItemAction == PLAYER_IA_HAMMER) || SOULS_IS_CLUB_HELD(this)) {
         if (controlStickDirection <= PLAYER_STICK_DIR_NONE) {
             controlStickDirection = PLAYER_STICK_DIR_FORWARD;
         }
@@ -15062,9 +15061,7 @@ s32 Player_ActionHandler_7(Player* this, PlayState* play) {
         if (func_8083BB20(this) != 0) {
             // OldCavemanBonkstick: the Reinforced Club replaces the swords.
             // Standing attack -> overhead smash; moving attack -> leaping slam.
-            if (((this->heldItemAction == PLAYER_IA_SWORD_KOKIRI) ||
-                 (this->heldItemAction == PLAYER_IA_SWORD_MASTER) ||
-                 (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) &&
+            if (SOULS_IS_CLUB_HELD(this) &&
                 (this->controlStickDirections[this->controlStickDataIndex] > PLAYER_STICK_DIR_NONE) &&
                 (sFloorType != 7)) {
                 // OldCavemanBonkstick: the moving attack is a heavier commitment.
@@ -15077,10 +15074,7 @@ s32 Player_ActionHandler_7(Player* this, PlayState* play) {
             }
 
             // OldCavemanBonkstick: club attacks cost stamina (Dark Souls-style).
-            if (((this->heldItemAction == PLAYER_IA_SWORD_KOKIRI) ||
-                 (this->heldItemAction == PLAYER_IA_SWORD_MASTER) ||
-                 (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) &&
-                !Stamina_TrySpend(STAMINA_COST_ATTACK)) {
+            if (SOULS_IS_CLUB_HELD(this) && !Stamina_TrySpend(STAMINA_COST_ATTACK)) {
                 return 0;
             }
 

@@ -12,7 +12,9 @@ extern "C" {
 // (scaled by the hit). Holding the shield up regenerates stamina much more slowly. If a
 // hit can't be paid for with stamina, the guard breaks and you take partial damage.
 
-#define CVAR_STAMINA_NAME "gEnhancements.StaminaSystem"
+#include "soh/Enhancements/Souls.h"
+
+#define CVAR_STAMINA_NAME CVAR_SOULS_STAMINA_NAME
 
 #define STAMINA_MAX_CHILD 100
 #define STAMINA_MAX_ADULT 130
