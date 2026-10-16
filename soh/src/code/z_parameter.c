@@ -5111,7 +5111,6 @@ void Interface_DrawStaminaBar(PlayState* play) {
     s16 y;
     s16 fill;
     s32 stamina;
-    s32 debt;
 
     if (!Stamina_IsEnabled()) {
         return;
@@ -5124,17 +5123,12 @@ void Interface_DrawStaminaBar(PlayState* play) {
     x = OTRGetRectDimensionFromLeftEdge(R_MAGIC_BAR_X + 8);
     y = R_MAGIC_BAR_SMALL_Y + 6;
     stamina = Stamina_Get();
-    debt = stamina < 0;
-    if (debt) {
+    if (stamina < 0) {
         stamina = 0;
     }
 
-    // Frame: dark normally, red while in stamina debt
-    if (debt) {
-        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 190, 40, 40, 235);
-    } else {
-        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 0, 0, 0, 220);
-    }
+    // Frame
+    gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 0, 0, 0, 220);
     gDPLoadMultiBlock_4b(OVERLAY_DISP++, gMagicMeterFillTex, 0, G_TX_RENDERTILE, G_IM_FMT_I, 16, 16, 0,
                          G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
                          G_TX_NOLOD);
@@ -5151,11 +5145,7 @@ void Interface_DrawStaminaBar(PlayState* play) {
     fill = (s16)((barWidth * stamina) / Stamina_GetMax());
     if (fill > 0) {
         gDPPipeSync(OVERLAY_DISP++);
-        if (stamina * 100 < Stamina_GetMax() * 30) {
-            gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 230, 160, 40, 255);
-        } else {
-            gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 60, 200, 60, 255);
-        }
+        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 60, 200, 60, 255);
         gSPWideTextureRectangle(OVERLAY_DISP++, x << 2, y << 2, (x + fill) << 2, (y + barHeight) << 2,
                                 G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
 
@@ -5497,7 +5487,7 @@ void Interface_Draw(PlayState* play) {
         }
 
         // OldCavemanBonkstick: Dark Souls-style stamina bar.
-        if (fullUi) {
+        if (fullUi || gSaveContext.health != gSaveContext.healthCapacity) {
             Interface_DrawStaminaBar(play);
         }
 
