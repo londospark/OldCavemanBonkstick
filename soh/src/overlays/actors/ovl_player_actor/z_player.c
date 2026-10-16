@@ -4350,12 +4350,20 @@ s32 func_80837818(Player* this) {
     s32 controlStickDirection = this->controlStickDirections[this->controlStickDataIndex];
     s32 sp18;
 
-    if (this->heldItemAction == PLAYER_IA_HAMMER) {
+    // OldCavemanBonkstick: the Reinforced Club replaces the swords and swings like the
+    // Megaton Hammer -- heavy vertical overhead smashes with hammer weight (Dark Souls-like).
+    if ((this->heldItemAction == PLAYER_IA_HAMMER) || (this->heldItemAction == PLAYER_IA_SWORD_KOKIRI) ||
+        (this->heldItemAction == PLAYER_IA_SWORD_MASTER) || (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) {
         if (controlStickDirection <= PLAYER_STICK_DIR_NONE) {
             controlStickDirection = PLAYER_STICK_DIR_FORWARD;
         }
 
-        sp18 = D_80854484[controlStickDirection];
+        if (this->heldItemAction == PLAYER_IA_HAMMER) {
+            sp18 = D_80854484[controlStickDirection];
+        } else {
+            // The club is a hammer-class weapon: every swing is an overhead smash (Dark Souls).
+            sp18 = PLAYER_MWA_HAMMER_FORWARD;
+        }
         this->unk_845 = 0;
     } else {
         if (Player_CanSpinAttack(this)) {
@@ -15016,6 +15024,17 @@ void Player_UpdateBunnyEars(Player* this) {
 s32 Player_ActionHandler_7(Player* this, PlayState* play) {
     if (func_8083C6B8(play, this) == 0) {
         if (func_8083BB20(this) != 0) {
+            // OldCavemanBonkstick: the Reinforced Club replaces the swords.
+            // Standing attack -> heavy overhead smash; moving attack -> leaping jump slam.
+            if (((this->heldItemAction == PLAYER_IA_SWORD_KOKIRI) ||
+                 (this->heldItemAction == PLAYER_IA_SWORD_MASTER) ||
+                 (this->heldItemAction == PLAYER_IA_SWORD_BIGGORON)) &&
+                (this->controlStickDirections[this->controlStickDataIndex] > PLAYER_STICK_DIR_NONE) &&
+                (sFloorType != 7)) {
+                func_8083BA90(play, this, PLAYER_MWA_JUMPSLASH_START, 5.0f, 5.0f);
+                return 1;
+            }
+
             s32 sp24 = func_80837818(this);
 
             func_80837948(play, this, sp24);
