@@ -50,6 +50,7 @@
 
 static s16 sRollRecoveryTimer = 0;    // counts down after each roll
 static s8 sRollHasIFrames = 1;        // whether the current roll grants i-frames
+static s16 sRollPhaseTimer = 0;       // frames left in the roll's i-frame window (enemy hits pass through)
 
 typedef enum {
     /* 0x00 */ KNOB_ANIM_ADULT_L,
@@ -9810,6 +9811,7 @@ void Player_Action_Roll(Player* this, PlayState* play) {
     // OldCavemanBonkstick: Dark Souls-style roll i-frames (skipped while spam-rolling).
     if (sRollHasIFrames && LinkAnimation_OnFrame(&this->skelAnime, PLAYER_ROLL_IFRAME_START)) {
         Player_SetInvulnerability(this, -PLAYER_ROLL_IFRAMES);
+        sRollPhaseTimer = PLAYER_ROLL_IFRAMES;
     }
 
     if (!func_80842964(this, play)) {
@@ -11833,6 +11835,9 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
     if (sRollRecoveryTimer != 0) {
         sRollRecoveryTimer--;
     }
+    if (sRollPhaseTimer != 0) {
+        sRollPhaseTimer--;
+    }
 
     // OldCavemanBonkstick: Dark Souls-style stamina regeneration (much slower while shielding).
     Stamina_Update((this->stateFlags1 & PLAYER_STATE1_SHIELDING) != 0);
@@ -12199,7 +12204,12 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
 
             if (!(this->stateFlags1 & (PLAYER_STATE1_DEAD | PLAYER_STATE1_DAMAGED)) &&
                 (this->invincibilityTimer <= 0)) {
-                CollisionCheck_SetAC(play, &play->colChkCtx, &this->cylinder.base);
+                // OldCavemanBonkstick: during roll i-frames the body doesn't register as hittable at
+                // all, so enemy weapons pass through instead of triggering a block/bounce. Link's
+                // own attacks (AT) still register.
+                if (sRollPhaseTimer == 0) {
+                    CollisionCheck_SetAC(play, &play->colChkCtx, &this->cylinder.base);
+                }
 
                 if (this->invincibilityTimer < 0) {
                     CollisionCheck_SetAT(play, &play->colChkCtx, &this->cylinder.base);
