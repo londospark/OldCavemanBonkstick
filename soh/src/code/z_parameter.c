@@ -5120,9 +5120,12 @@ void Interface_DrawStaminaBar(PlayState* play) {
 
     Gfx_SetupDL_39Overlay(play->state.gfxCtx);
 
-    x = OTRGetRectDimensionFromLeftEdge(R_MAGIC_BAR_X + 4);
-    y = R_MAGIC_BAR_LARGE_Y + 22;
+    x = OTRGetRectDimensionFromLeftEdge(R_MAGIC_BAR_X + 8);
+    y = R_MAGIC_BAR_SMALL_Y + 6;
     stamina = Stamina_Get();
+    if (stamina < 0) {
+        stamina = 0;
+    }
 
     // Bar background
     gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 0, 0, 0, 160);
@@ -5133,7 +5136,7 @@ void Interface_DrawStaminaBar(PlayState* play) {
                             G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
 
     // Bar fill
-    fill = (s16)((barWidth * stamina) / STAMINA_MAX);
+    fill = (s16)((barWidth * stamina) / Stamina_GetMax());
     if (fill > 0) {
         gDPPipeSync(OVERLAY_DISP++);
         gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 40, 215, 40, 255);

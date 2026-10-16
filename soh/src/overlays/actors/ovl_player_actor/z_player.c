@@ -4807,6 +4807,13 @@ s32 func_808382DC(Player* this, PlayState* play) {
         } else {
             sp64 = (this->shieldQuad.base.acFlags & AC_BOUNCED) != 0;
 
+            // OldCavemanBonkstick: blocking costs stamina, scaled by the incoming hit. If there
+            // isn't enough stamina the guard breaks and Link takes partial damage instead.
+            if (sp64 && !Stamina_TryBlock(STAMINA_COST_BLOCK + this->actor.colChkInfo.damage)) {
+                sp64 = 0;
+                this->actor.colChkInfo.damage = MAX(1, this->actor.colChkInfo.damage / 4);
+            }
+
             //! @bug The second set of conditions here seems intended as a way for Link to "block" hits by rolling.
             // However, `Collider.atFlags` is a byte so the flag check at the end is incorrect and cannot work.
             // Additionally, `Collider.atHit` can never be set while already colliding as AC, so it's also bugged.
@@ -11828,8 +11835,8 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
         sRollRecoveryTimer--;
     }
 
-    // OldCavemanBonkstick: Dark Souls-style stamina regeneration.
-    Stamina_Update();
+    // OldCavemanBonkstick: Dark Souls-style stamina regeneration (much slower while shielding).
+    Stamina_Update((this->stateFlags1 & PLAYER_STATE1_SHIELDING) != 0);
 
     if (this->textboxBtnCooldownTimer != 0) {
         this->textboxBtnCooldownTimer--;
