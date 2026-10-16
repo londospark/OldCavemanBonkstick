@@ -44,8 +44,9 @@
 // OldCavemanBonkstick: Dark Souls-style roll. The roll gets a tight, reliable window of
 // invulnerability like a Dark Souls "medium load" roll, but it can't be spammed for permanent
 // protection -- chaining rolls strips the i-frames until the player has recovered.
-#define PLAYER_ROLL_IFRAME_START 3.0f // roll animation frame where the i-frames begin
-#define PLAYER_ROLL_IFRAMES 8         // i-frame duration (~0.4s @ 20fps; DS medium is ~0.37s)
+#define PLAYER_ROLL_IFRAME_START 2.0f // roll animation frame where the i-frames begin
+#define PLAYER_ROLL_IFRAMES 12        // i-frame duration (~0.6s @ 20fps)
+#define PLAYER_ROLL_SPEED 1.6f        // roll animation speed (vanilla 1.25)
 #define PLAYER_ROLL_RECOVERY 20       // frames after a roll before the next roll gets i-frames
 
 static s16 sRollRecoveryTimer = 0;    // counts down after each roll
@@ -6333,7 +6334,7 @@ void Player_SetupRoll(Player* this, PlayState* play) {
     Player_SetupAction(play, this, Player_Action_Roll, 0);
     LinkAnimation_PlayOnceSetSpeed(play, &this->skelAnime,
                                    GET_PLAYER_ANIM(PLAYER_ANIMGROUP_landing_roll, this->modelAnimType),
-                                   1.25f * sWaterSpeedFactor);
+                                   PLAYER_ROLL_SPEED * sWaterSpeedFactor);
     gSaveContext.ship.stats.count[COUNT_ROLLS]++;
 
     // OldCavemanBonkstick: only grant i-frames if this isn't a chained (spam) roll.
