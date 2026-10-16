@@ -9881,11 +9881,12 @@ void Player_Action_Roll(Player* this, PlayState* play) {
                 Player_GetMovementSpeedAndYaw(this, &speedTarget, &yawTarget, SPEED_MODE_CURVED, play);
 
                 // `speedTarget` at this point is the speed that would be used for regular walking.
-                // Rolling speed is 1.5 times faster than walking speed would be for the current control stick input.
-                speedTarget *= 1.5f;
+                // OldCavemanBonkstick: the roll covers real ground -- much faster than walking, with
+                // a higher floor so even a standing-still roll travels a good distance.
+                speedTarget *= 2.2f;
 
-                if ((speedTarget < 3.0f) || (this->controlStickDirections[this->controlStickDataIndex] != 0)) {
-                    speedTarget = 3.0f;
+                if ((speedTarget < 6.0f) || (this->controlStickDirections[this->controlStickDataIndex] != 0)) {
+                    speedTarget = 6.0f;
                 }
 
                 GameInteractor_Should(VB_PLAYER_ROLL_STEER, false, this, play, yawTarget);

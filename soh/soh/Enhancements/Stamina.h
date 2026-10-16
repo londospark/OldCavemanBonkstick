@@ -24,7 +24,7 @@ extern "C" {
 #define STAMINA_MAX_ADULT 130
 #define STAMINA_DEBT_FLOOR (-50)
 
-#define STAMINA_COST_ROLL 25
+#define STAMINA_COST_ROLL 40
 #define STAMINA_COST_ATTACK 25
 #define STAMINA_COST_JUMP_ATTACK 65
 #define STAMINA_COST_JUMP_ATTACK_CHAIN 45 // a jump attack made soon after another
