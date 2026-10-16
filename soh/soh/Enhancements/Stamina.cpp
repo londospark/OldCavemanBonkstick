@@ -118,7 +118,8 @@ int Stamina_TryBlock(int cost) {
 }
 
 void Stamina_Drain(int amount) {
-    if (!Stamina_IsEnabled()) {
+    // While in debt, stamina is only ever spent by performing an action, never passively.
+    if (!Stamina_IsEnabled() || Stamina_IsInDebt()) {
         return;
     }
     sStamina -= (float)amount;
