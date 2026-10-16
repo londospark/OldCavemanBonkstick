@@ -435,6 +435,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "Windows|NintendoSwitch|CafeOS")
 install(FILES ${CMAKE_SOURCE_DIR}/README.md DESTINATION . COMPONENT ship RENAME readme.txt )
 endif()
 
+# OldCavemanBonkstick: ship the Reinforced Club mods inside the build so the packaged
+# release is ready to play without copying the .o2r files into mods/ by hand.
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/mods/" DESTINATION mods COMPONENT ship)
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(CPACK_GENERATOR "External")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows|NintendoSwitch|CafeOS")
