@@ -5121,7 +5121,16 @@ void Interface_DrawStaminaBar(PlayState* play) {
     Gfx_SetupDL_39Overlay(play->state.gfxCtx);
 
     x = OTRGetRectDimensionFromLeftEdge(R_MAGIC_BAR_X + 8);
-    y = R_MAGIC_BAR_SMALL_Y + 6;
+    // Sit just under the hearts, following the same row rule as the magic bar (one extra row
+    // of hearts moves the bar down). Drop it further if a magic meter is shown above it.
+    {
+        s32 lineLength = CVarGetInteger(CVAR_COSMETIC("HUD.Hearts.LineLength"), 10);
+        bool twoRows = (lineLength != 0) && ((gSaveContext.healthCapacity - 1) / FULL_HEART_HEALTH >= lineLength);
+        y = (twoRows ? R_MAGIC_BAR_LARGE_Y : R_MAGIC_BAR_SMALL_Y) + 2;
+        if (gSaveContext.magicLevel != 0) {
+            y += 12;
+        }
+    }
     stamina = Stamina_Get();
     if (stamina < 0) {
         stamina = 0;
