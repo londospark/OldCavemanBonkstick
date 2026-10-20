@@ -356,6 +356,13 @@ add_custom_command(
 )
 add_custom_target(GenerateSohOtr ALL DEPENDS ${CMAKE_BINARY_DIR}/soh/soh.o2r)
 
+# OldCavemanBonkstick: mirror bonkstick/ next to soh.o2r in the build tree so dev builds load it too.
+add_custom_target(CopyBonkstickAssets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/bonkstick ${CMAKE_BINARY_DIR}/soh/bonkstick
+    COMMENT "Copying OldCavemanBonkstick assets..."
+    VERBATIM
+)
+
 # ExtractAssets produced soh.o2r as well as the rom archives, so keep doing that.
 add_dependencies(ExtractAssets GenerateSohOtr)
 
@@ -435,9 +442,13 @@ if(CMAKE_SYSTEM_NAME MATCHES "Windows|NintendoSwitch|CafeOS")
 install(FILES ${CMAKE_SOURCE_DIR}/README.md DESTINATION . COMPONENT ship RENAME readme.txt )
 endif()
 
-# OldCavemanBonkstick: ship the Reinforced Club mods inside the build so the packaged
-# release is ready to play without copying the .o2r files into mods/ by hand.
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/mods/" DESTINATION mods COMPONENT ship)
+# OldCavemanBonkstick: ship the Reinforced Club assets next to soh.o2r. OTRGlobals::Initialize loads
+# every .o2r in bonkstick/ right after oot.o2r, so they apply whatever is in the user's mods folder.
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/bonkstick/" DESTINATION ../Resources/bonkstick COMPONENT ship)
+else()
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/bonkstick/" DESTINATION bonkstick COMPONENT ship)
+endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(CPACK_GENERATOR "External")

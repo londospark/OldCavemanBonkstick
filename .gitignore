@@ -462,6 +462,6 @@ soh/properties.h
 /clang-format.exe
 *.o2r
 
-# OldCavemanBonkstick: the Reinforced Club mods are baked into the build
-!mods/
-!mods/*.o2r
+# OldCavemanBonkstick: the Reinforced Club assets are baked into the build
+!bonkstick/
+!bonkstick/*.o2r

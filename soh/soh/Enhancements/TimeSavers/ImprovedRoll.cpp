@@ -1,6 +1,8 @@
 #include <libultraship/bridge/consolevariablebridge.h>
 
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ShipInit.hpp"
 
 extern "C" {
@@ -19,7 +21,7 @@ void ImprovedRoll_Register() {
         Input* controlInput = va_arg(args, Input*);
         s32 floorType = va_arg(args, s32);
         if ((player->skelAnime.curFrame >= 15.0f) && CHECK_BTN_ALL(controlInput->press.button, BTN_A) &&
-            (floorType != 7)) {
+            (floorType != 7) && GameInteractor_Should(VB_PLAYER_ROLL, true, player)) {
             Player_SetupRoll(player, play);
             *should = true;
         }

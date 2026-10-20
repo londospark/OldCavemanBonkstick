@@ -405,6 +405,15 @@ void GameInteractor_ExecuteOnSeqPlayerInit(int32_t playerIdx, int32_t seqId) {
     GameInteractor::Instance->ExecuteHooks<GameInteractor::OnSeqPlayerInit>(playerIdx, seqId);
 }
 
+// MARK: - OldCavemanBonkstick
+void GameInteractor_ExecuteOnPlayerRollStart(Player* player, float* animSpeed) {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnPlayerRollStart>(player, animSpeed);
+}
+
+void GameInteractor_ExecuteAfterInterfaceDrawMagicBar(bool fullUi) {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::AfterInterfaceDrawMagicBar>(fullUi);
+}
+
 // MARK: - Rando
 void GameInteractor_ExecuteOnRandoEntranceDiscovered(u16 entranceIndex, u8 isReversedEntrance) {
     GameInteractor::Instance->ExecuteHooks<GameInteractor::OnRandoEntranceDiscovered>(entranceIndex,

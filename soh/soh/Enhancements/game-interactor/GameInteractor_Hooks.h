@@ -103,6 +103,10 @@ void GameInteractor_ExecuteOnOpenText(uint16_t* textId, bool* loadFromMessageTab
 // Mark: - Audio
 void GameInteractor_ExecuteOnSeqPlayerInit(int32_t playerIdx, int32_t seqId);
 
+// MARK: - OldCavemanBonkstick
+void GameInteractor_ExecuteOnPlayerRollStart(Player* player, float* animSpeed);
+void GameInteractor_ExecuteAfterInterfaceDrawMagicBar(bool fullUi);
+
 // MARK: - Rando
 void GameInteractor_ExecuteOnRandoEntranceDiscovered(u16 entranceIndex, u8 isReversedEntrance);
 

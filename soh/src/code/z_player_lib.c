@@ -8,7 +8,6 @@
 #include <libultraship/bridge/resourcebridge.h>
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
-#include "soh/Enhancements/Souls.h"
 #include "soh/Enhancements/randomizer/draw.h"
 #include "soh/ResourceManagerHelpers.h"
 
@@ -1576,12 +1575,10 @@ void func_800906D4(PlayState* play, Player* this, Vec3f* newTipPos) {
     Matrix_MultVec3f(&D_801260A4[1], &newBasePos[1]);
     Matrix_MultVec3f(&D_801260A4[2], &newBasePos[2]);
 
-    // OldCavemanBonkstick: the Reinforced Club replaces the swords. Suppress the sword trail
-    // (a thin blade-shaped streak) so swings read as a heavy club rather than a sword swooshing.
     if (func_80090480(play, NULL, &this->meleeWeaponInfo[0], &newTipPos[0], &newBasePos[0]) &&
         !(this->stateFlags1 & PLAYER_STATE1_SHIELDING) &&
-        !SOULS_IS_CLUB_HELD(this) &&
-        !CVarGetInteger(CVAR_ENHANCEMENT("DisableLinkSwordTrail"), 0)) {
+        !CVarGetInteger(CVAR_ENHANCEMENT("DisableLinkSwordTrail"), 0) &&
+        GameInteractor_Should(VB_PLAYER_DRAW_SWORD_TRAIL, true, this)) {
         EffectBlure_AddVertex(Effect_GetByIndex(this->meleeWeaponEffectIndex), &this->meleeWeaponInfo[0].tip,
                               &this->meleeWeaponInfo[0].base);
     }

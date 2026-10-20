@@ -209,6 +209,8 @@ bool IsOotrsExtension(std::string extension) {
     return StringHelper::IEquals(extension, ".ootrs");
 }
 
+void LoadBonkstickArchives();
+
 void UpdateModFiles(bool init = false, bool reset = false) {
     if (init || reset) {
         enabledModFiles.clear();
@@ -270,6 +272,9 @@ void UpdateModFiles(bool init = false, bool reset = false) {
         if (changed) {
             SetEnabledModsCVarValue();
         }
+    }
+    if (init) {
+        LoadBonkstickArchives(); // OldCavemanBonkstick: after the user's mods so the club assets win
     }
 }
 

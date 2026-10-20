@@ -28,7 +28,6 @@
 #include "soh/Enhancements/randomizer/randomizer_entrance.h"
 #include "soh/Enhancements/randomizer/randomizer_grotto.h"
 #include "soh/frame_interpolation.h"
-#include "soh/Enhancements/Stamina.h"
 #include "soh/OTRGlobals.h"
 #include "soh/Enhancements/savestate_serialize.h"
 
@@ -40,18 +39,6 @@
 // Some player animations are played at this reduced speed, for reasons yet unclear.
 // This is called "adjusted" for now.
 #define PLAYER_ANIM_ADJUSTED_SPEED (2.0f / 3.0f)
-
-// OldCavemanBonkstick: Dark Souls-style roll. The roll gets a tight, reliable window of
-// invulnerability like a Dark Souls "medium load" roll, but it can't be spammed for permanent
-// protection -- chaining rolls strips the i-frames until the player has recovered.
-#define PLAYER_ROLL_IFRAME_START 2.0f // roll animation frame where the i-frames begin
-#define PLAYER_ROLL_IFRAMES 12        // i-frame duration (~0.6s @ 20fps)
-#define PLAYER_ROLL_SPEED 1.6f        // roll animation speed (vanilla 1.25)
-#define PLAYER_ROLL_RECOVERY 20       // frames after a roll before the next roll gets i-frames
-
-static s16 sRollRecoveryTimer = 0;    // counts down after each roll
-static s8 sRollHasIFrames = 1;        // whether the current roll grants i-frames
-static s16 sRollPhaseTimer = 0;       // frames left in the roll's i-frame window (enemy hits pass through)
 
 typedef enum {
     /* 0x00 */ KNOB_ANIM_ADULT_L,
@@ -2859,8 +2846,8 @@ s32 Player_UpperAction_ChangeHeldItem(Player* this, PlayState* play) {
 s32 func_80834B5C(Player* this, PlayState* play) {
     LinkAnimation_Update(play, &this->upperSkelAnime);
 
-    // OldCavemanBonkstick: stamina debt drops a raised shield.
-    if (!CHECK_BTN_ALL(sControlInput->cur.button, BTN_R) || !Stamina_CanAct()) {
+    if (!CHECK_BTN_ALL(sControlInput->cur.button, BTN_R) ||
+        !GameInteractor_Should(VB_PLAYER_ALLOW_SHIELD, true, this)) {
         func_80834894(this);
         return true;
     } else {
@@ -4364,19 +4351,13 @@ s32 func_80837818(Player* this) {
     s32 controlStickDirection = this->controlStickDirections[this->controlStickDataIndex];
     s32 sp18;
 
-    // OldCavemanBonkstick: the Reinforced Club replaces the swords and swings like the
-    // Megaton Hammer -- heavy vertical overhead smashes with hammer weight (Dark Souls-like).
-    if ((this->heldItemAction == PLAYER_IA_HAMMER) || SOULS_IS_CLUB_HELD(this)) {
+    if (GameInteractor_Should(VB_PLAYER_USE_HAMMER_ATTACKS, this->heldItemAction == PLAYER_IA_HAMMER, this,
+                              &controlStickDirection)) {
         if (controlStickDirection <= PLAYER_STICK_DIR_NONE) {
             controlStickDirection = PLAYER_STICK_DIR_FORWARD;
         }
 
-        if (this->heldItemAction == PLAYER_IA_HAMMER) {
-            sp18 = D_80854484[controlStickDirection];
-        } else {
-            // The club is a hammer-class weapon: every swing is an overhead smash (Dark Souls).
-            sp18 = PLAYER_MWA_HAMMER_FORWARD;
-        }
+        sp18 = D_80854484[controlStickDirection];
         this->unk_845 = 0;
     } else {
         if (Player_CanSpinAttack(this)) {
@@ -4807,14 +4788,8 @@ s32 func_808382DC(Player* this, PlayState* play) {
             func_80837C0C(play, this, knockbackResponse[this->knockbackType - 1], this->knockbackSpeed,
                           this->knockbackYVelocity, this->knockbackRot, 20);
         } else {
-            sp64 = (this->shieldQuad.base.acFlags & AC_BOUNCED) != 0;
-
-            // OldCavemanBonkstick: blocking costs stamina, scaled by the incoming hit. If there
-            // isn't enough stamina the guard breaks and Link takes partial damage instead.
-            if (sp64 && !Stamina_TryBlock(STAMINA_COST_BLOCK + this->actor.colChkInfo.damage)) {
-                sp64 = 0;
-                this->actor.colChkInfo.damage = MAX(1, this->actor.colChkInfo.damage / 4);
-            }
+            sp64 = GameInteractor_Should(VB_PLAYER_BLOCK_WITH_SHIELD, (this->shieldQuad.base.acFlags & AC_BOUNCED) != 0,
+                                         this, play);
 
             //! @bug The second set of conditions here seems intended as a way for Link to "block" hits by rolling.
             // However, `Collider.atFlags` is a byte so the flag check at the end is incorrect and cannot work.
@@ -6331,24 +6306,19 @@ s32 func_8083BBA0(Player* this, PlayState* play) {
 }
 
 void Player_SetupRoll(Player* this, PlayState* play) {
+    f32 rollAnimSpeed = 1.25f;
+
+    GameInteractor_ExecuteOnPlayerRollStart(this, &rollAnimSpeed);
     Player_SetupAction(play, this, Player_Action_Roll, 0);
     LinkAnimation_PlayOnceSetSpeed(play, &this->skelAnime,
                                    GET_PLAYER_ANIM(PLAYER_ANIMGROUP_landing_roll, this->modelAnimType),
-                                   PLAYER_ROLL_SPEED * sWaterSpeedFactor);
+                                   rollAnimSpeed * sWaterSpeedFactor);
     gSaveContext.ship.stats.count[COUNT_ROLLS]++;
-
-    // OldCavemanBonkstick: only grant i-frames if this isn't a chained (spam) roll.
-    sRollHasIFrames = (sRollRecoveryTimer == 0);
-    sRollRecoveryTimer = PLAYER_ROLL_RECOVERY;
 }
 
 s32 Player_TryRoll(Player* this, PlayState* play) {
-    if ((this->controlStickDirections[this->controlStickDataIndex] == 0) && (sFloorType != 7)) {
-        // OldCavemanBonkstick: rolling costs stamina (Dark Souls-style).
-        if (!Stamina_TrySpend(STAMINA_COST_ROLL)) {
-            return false;
-        }
-
+    if ((this->controlStickDirections[this->controlStickDataIndex] == 0) && (sFloorType != 7) &&
+        GameInteractor_Should(VB_PLAYER_ROLL, true, this)) {
         Player_SetupRoll(this, play);
 
         return true;
@@ -6504,9 +6474,8 @@ s32 Player_ActionHandler_11(Player* this, PlayState* play) {
     LinkAnimationHeader* anim;
     f32 frame;
 
-    // OldCavemanBonkstick: the shield can't be raised while in stamina debt.
     if ((play->shootingGalleryStatus == 0) && (this->currentShield != PLAYER_SHIELD_NONE) &&
-        CHECK_BTN_ALL(sControlInput->cur.button, BTN_R) && Stamina_CanAct() &&
+        CHECK_BTN_ALL(sControlInput->cur.button, BTN_R) && GameInteractor_Should(VB_PLAYER_ALLOW_SHIELD, true, this) &&
         (Player_IsChildWithHylianShield(this) ||
          (!Player_FriendlyLockOnOrParallel(this) && (this->focusActor == NULL)))) {
 
@@ -9805,16 +9774,16 @@ void Player_Action_Roll(Player* this, PlayState* play) {
     s32 pad;
     f32 speedTarget;
     s16 yawTarget;
+    s32 rollIFrames = 10;
 
     this->stateFlags2 |= PLAYER_STATE2_DISABLE_ROTATION_Z_TARGET;
 
     ocCollidedActor = NULL;
     animDone = LinkAnimation_Update(play, &this->skelAnime);
 
-    // OldCavemanBonkstick: Dark Souls-style roll i-frames (skipped while spam-rolling).
-    if (sRollHasIFrames && LinkAnimation_OnFrame(&this->skelAnime, PLAYER_ROLL_IFRAME_START)) {
-        Player_SetInvulnerability(this, -PLAYER_ROLL_IFRAMES);
-        sRollPhaseTimer = PLAYER_ROLL_IFRAMES;
+    if (GameInteractor_Should(VB_PLAYER_ROLL_IFRAMES, LinkAnimation_OnFrame(&this->skelAnime, 8.0f), this,
+                              &rollIFrames)) {
+        Player_SetInvulnerability(this, -rollIFrames);
     }
 
     if (!func_80842964(this, play)) {
@@ -9880,13 +9849,15 @@ void Player_Action_Roll(Player* this, PlayState* play) {
 
                 Player_GetMovementSpeedAndYaw(this, &speedTarget, &yawTarget, SPEED_MODE_CURVED, play);
 
-                // `speedTarget` at this point is the speed that would be used for regular walking.
-                // OldCavemanBonkstick: the roll covers real ground -- much faster than walking, with
-                // a higher floor so even a standing-still roll travels a good distance.
-                speedTarget *= 2.2f;
+                if (GameInteractor_Should(VB_PLAYER_MODIFY_ROLL_SPEED, true, this, &speedTarget)) {
+                    // `speedTarget` at this point is the speed that would be used for regular walking.
+                    // Rolling speed is 1.5 times faster than walking speed would be for the current control stick
+                    // input.
+                    speedTarget *= 1.5f;
 
-                if ((speedTarget < 6.0f) || (this->controlStickDirections[this->controlStickDataIndex] != 0)) {
-                    speedTarget = 6.0f;
+                    if ((speedTarget < 3.0f) || (this->controlStickDirections[this->controlStickDataIndex] != 0)) {
+                        speedTarget = 3.0f;
+                    }
                 }
 
                 GameInteractor_Should(VB_PLAYER_ROLL_STEER, false, this, play, yawTarget);
@@ -11835,17 +11806,6 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
         this->unk_A73--;
     }
 
-    // OldCavemanBonkstick: roll i-frame recovery timer.
-    if (sRollRecoveryTimer != 0) {
-        sRollRecoveryTimer--;
-    }
-    if (sRollPhaseTimer != 0) {
-        sRollPhaseTimer--;
-    }
-
-    // OldCavemanBonkstick: Dark Souls-style stamina regeneration (much slower while shielding).
-    Stamina_Update((this->stateFlags1 & PLAYER_STATE1_SHIELDING) != 0);
-
     if (this->textboxBtnCooldownTimer != 0) {
         this->textboxBtnCooldownTimer--;
     }
@@ -12208,10 +12168,7 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
 
             if (!(this->stateFlags1 & (PLAYER_STATE1_DEAD | PLAYER_STATE1_DAMAGED)) &&
                 (this->invincibilityTimer <= 0)) {
-                // OldCavemanBonkstick: during roll i-frames the body doesn't register as hittable at
-                // all, so enemy weapons pass through instead of triggering a block/bounce. Link's
-                // own attacks (AT) still register.
-                if (sRollPhaseTimer == 0) {
+                if (GameInteractor_Should(VB_PLAYER_SET_BODY_AC, true, this)) {
                     CollisionCheck_SetAC(play, &play->colChkCtx, &this->cylinder.base);
                 }
 
@@ -15073,22 +15030,12 @@ void Player_UpdateBunnyEars(Player* this) {
 s32 Player_ActionHandler_7(Player* this, PlayState* play) {
     if (func_8083C6B8(play, this) == 0) {
         if (func_8083BB20(this) != 0) {
-            // OldCavemanBonkstick: the Reinforced Club replaces the swords.
-            // Standing attack -> overhead smash; moving attack -> leaping slam.
-            if (SOULS_IS_CLUB_HELD(this) &&
-                (this->controlStickDirections[this->controlStickDataIndex] > PLAYER_STICK_DIR_NONE) &&
-                (sFloorType != 7)) {
-                // OldCavemanBonkstick: the moving attack is a heavier commitment.
-                if (!Stamina_TrySpendJumpAttack()) {
-                    return 0;
-                }
-
+            if (GameInteractor_Should(VB_PLAYER_B_BUTTON_JUMPSLASH, false, this, sFloorType)) {
                 func_8083BA90(play, this, PLAYER_MWA_JUMPSLASH_START, 5.0f, 5.0f);
                 return 1;
             }
 
-            // OldCavemanBonkstick: club attacks cost stamina (Dark Souls-style).
-            if (SOULS_IS_CLUB_HELD(this) && !Stamina_TrySpend(STAMINA_COST_ATTACK)) {
+            if (!GameInteractor_Should(VB_PLAYER_START_MELEE_ATTACK, true, this, sFloorType)) {
                 return 0;
             }
 

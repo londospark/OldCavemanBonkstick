@@ -809,6 +809,31 @@ void InitGfxDebugger() {
     }
 }
 
+// OldCavemanBonkstick: the Reinforced Club assets ship in bonkstick/ next to soh.o2r, not in mods/ (on
+// Linux the mods folder is the user's own ~/.local/share/soh/mods, which the build can't put files in).
+// UpdateModFiles calls this after loading the user's mods, so the club's model, animations and icons win
+// over texture packs that replace the sword icons (e.g. OoT Reloaded) while everything else in the pack
+// still applies.
+void LoadBonkstickArchives() {
+    std::string dir = Ship::Context::LocateFileAcrossAppDirs("bonkstick", appShortName);
+    if (!std::filesystem::is_directory(dir)) {
+        SPDLOG_ERROR("OldCavemanBonkstick assets folder not found ({})", dir);
+        return;
+    }
+
+    std::vector<std::string> archives;
+    for (const auto& entry : std::filesystem::directory_iterator(dir)) {
+        if (entry.is_regular_file() && StringHelper::IEquals(entry.path().extension().string(), ".o2r")) {
+            archives.push_back(entry.path().generic_string());
+        }
+    }
+    std::sort(archives.begin(), archives.end());
+    for (const auto& archive : archives) {
+        SPDLOG_INFO("Loading OldCavemanBonkstick archive {}", archive);
+        Ship::Context::GetRawInstance()->GetResourceManager()->GetArchiveManager()->AddArchive(archive);
+    }
+}
+
 void OTRGlobals::Initialize() {
     std::string mqPath = Ship::Context::LocateFileAcrossAppDirs("oot-mq.o2r", appShortName);
     if (std::filesystem::exists(mqPath)) {

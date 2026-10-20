@@ -4181,4 +4181,102 @@ typedef enum {
     // - none
     VB_EMPTY_BOTTLE_OI,
 
+    // MARK: - OldCavemanBonkstick
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // Whether the shield can be raised (Player_ActionHandler_11) or kept up (func_80834B5C).
+    // #### `args`
+    // - `*Player`
+    VB_PLAYER_ALLOW_SHIELD,
+
+    // #### `result`
+    // ```c
+    // false
+    // ```
+    // Whether a B press turns straight into a jumpslash (Player_ActionHandler_7).
+    // #### `args`
+    // - `*Player`
+    // - `s32` (sFloorType)
+    VB_PLAYER_B_BUTTON_JUMPSLASH,
+
+    // #### `result`
+    // ```c
+    // (this->shieldQuad.base.acFlags & AC_BOUNCED) != 0
+    // ```
+    // Whether the shield blocked this frame's hit. Returning false lets the hit fall through to the body.
+    // #### `args`
+    // - `*Player`
+    // - `*PlayState`
+    VB_PLAYER_BLOCK_WITH_SHIELD,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // Whether the sword trail gets a vertex this frame.
+    // #### `args`
+    // - `*Player`
+    VB_PLAYER_DRAW_SWORD_TRAIL,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // Whether to apply the vanilla roll speed (walk speed x1.5, floor 3). Return false after writing your own.
+    // #### `args`
+    // - `*Player`
+    // - `f32*` (speedTarget, the walking speed for the current stick input)
+    VB_PLAYER_MODIFY_ROLL_SPEED,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // Whether a roll may start (Player_TryRoll).
+    // #### `args`
+    // - `*Player`
+    VB_PLAYER_ROLL,
+
+    // #### `result`
+    // ```c
+    // LinkAnimation_OnFrame(&this->skelAnime, 8.0f)
+    // ```
+    // Evaluated every frame of a roll; true grants `*rollIFrames` frames of invulnerability.
+    // #### `args`
+    // - `*Player`
+    // - `s32*` (rollIFrames, vanilla 10)
+    VB_PLAYER_ROLL_IFRAMES,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // Whether Link's body cylinder is registered as hittable (AC) this frame.
+    // #### `args`
+    // - `*Player`
+    VB_PLAYER_SET_BODY_AC,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // Whether a B-button melee attack may start (Player_ActionHandler_7).
+    // #### `args`
+    // - `*Player`
+    // - `s32` (sFloorType)
+    VB_PLAYER_START_MELEE_ATTACK,
+
+    // #### `result`
+    // ```c
+    // this->heldItemAction == PLAYER_IA_HAMMER
+    // ```
+    // Whether the held weapon swings with the hammer attacks (func_80837818).
+    // #### `args`
+    // - `*Player`
+    // - `s32*` (controlStickDirection, used to pick forward/side swing)
+    VB_PLAYER_USE_HAMMER_ATTACKS,
+
 } GIVanillaBehavior;

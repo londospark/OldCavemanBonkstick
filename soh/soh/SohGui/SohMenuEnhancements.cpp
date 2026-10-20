@@ -1,7 +1,7 @@
 ﻿#include "SohMenu.h"
 #include <soh/Enhancements/enhancementTypes.h>
 #include "soh/Enhancements/SwitchAge.h"
-#include "soh/Enhancements/Souls.h"
+#include "soh/Enhancements/Souls/Souls.h"
 #include "soh/Enhancements/AdultMasks.h"
 #include "soh/Enhancements/BunnyHood.h"
 #include "soh/Enhancements/FileSelectEnhancements.h"
@@ -1141,24 +1141,6 @@ void SohMenu::AddMenuEnhancements() {
         .CVar(CVAR_ENHANCEMENT("RebottleBlueFire"))
         .Options(CheckboxOptions().Tooltip("Blue Fire dropped from a bottle can be bottled."));
 
-    // Souls
-    path.sidebarName = "Souls";
-    AddSidebarEntry("Enhancements", path.sidebarName, 3);
-    path.column = SECTION_COLUMN_1;
-    AddWidget(path, "Souls Features", WIDGET_SEPARATOR_TEXT);
-    AddWidget(path, "Reinforced Club", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_SOULS_CLUB_NAME)
-        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
-            "Swords are replaced by the Reinforced Club: heavy overhead smashes, a leaping slam while moving, "
-            "and no sword trail. Turn off to return swords to vanilla behaviour.\n\n"
-            "Note: the club's look comes from the reinforced_club*.o2r asset mods. Remove those from the mods "
-            "folder to remove the model and icons as well."));
-    AddWidget(path, "Stamina System", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_SOULS_STAMINA_NAME)
-        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
-            "Dark Souls-style stamina: rolling, club attacks and blocking consume stamina, and a stamina bar "
-            "is shown under the hearts. Holding the shield up slows recovery."));
-
     // Fixes
     path.sidebarName = "Fixes";
     AddSidebarEntry("Enhancements", path.sidebarName, 3);
@@ -2215,6 +2197,38 @@ void SohMenu::AddMenuEnhancements() {
             .CVar(timer.timeEnable)
             .Callback([](WidgetInfo& info) { TimeDisplayUpdateDisplayOptions(); });
     }
+
+    // OldCavemanBonkstick: Souls sits last in the Enhancements sidebar so it's easy to find.
+    path.sidebarName = "Souls";
+    AddSidebarEntry("Enhancements", path.sidebarName, 1);
+    path.column = SECTION_COLUMN_1;
+    AddWidget(path, "Souls Features", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "Reinforced Club", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SOULS_CLUB_NAME)
+        .Options(
+            CheckboxOptions()
+                .DefaultValue(CVAR_SOULS_CLUB_DEFAULT)
+                .Tooltip(
+                    "Swords are replaced by the Reinforced Club: heavy overhead smashes, a leaping slam while moving, "
+                    "no sword trail, and no sword or sheath on Link's back. Turn off to return swords to vanilla "
+                    "behaviour.\n\n"
+                    "The club's model and icons are part of this build and stay either way."));
+    AddWidget(path, "Stamina System", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SOULS_STAMINA_NAME)
+        .Options(
+            CheckboxOptions()
+                .DefaultValue(CVAR_SOULS_STAMINA_DEFAULT)
+                .Tooltip(
+                    "Dark Souls-style stamina: rolling, club attacks and blocking consume stamina, and a stamina bar "
+                    "is shown under the hearts. Holding the shield up slows recovery. A block you can't pay for breaks "
+                    "your guard."));
+    AddWidget(path, "Dark Souls Roll", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SOULS_ROLL_NAME)
+        .Options(
+            CheckboxOptions()
+                .DefaultValue(CVAR_SOULS_ROLL_DEFAULT)
+                .Tooltip("A faster roll that covers more ground, with a short window where enemy attacks pass straight "
+                         "through Link. Rolling again too soon gets no invulnerability."));
 }
 
 } // namespace SohGui

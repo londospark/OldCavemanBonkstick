@@ -93,6 +93,10 @@ DEFINE_HOOK(OnOpenText, (uint16_t * textId, bool* loadFromMessageTable));
 // Audio
 DEFINE_HOOK(OnSeqPlayerInit, (int32_t playerIdx, int32_t seqId));
 
+// OldCavemanBonkstick
+DEFINE_HOOK(OnPlayerRollStart, (Player * player, float* animSpeed));
+DEFINE_HOOK(AfterInterfaceDrawMagicBar, (bool fullUi));
+
 // Rando
 DEFINE_HOOK(OnRandoSetCheckStatus, (RandomizerCheck rc, RandomizerCheckStatus status));
 DEFINE_HOOK(OnRandoSetIsSkipped, (RandomizerCheck rc, bool isSkipped));
