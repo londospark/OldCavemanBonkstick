@@ -17,9 +17,9 @@ extern PlayState* gPlayState;
 //   regen:  Dark Souls' base 45/s, i.e. 2.25/frame @ 20fps, after a short pause following spending
 #define STAMINA_REGEN_PER_TICK 2.25f
 #define STAMINA_REGEN_DELAY 18
-#define STAMINA_REGEN_DELAY_FACTOR 0.35f // regen multiplier during the post-spend pause
-#define STAMINA_REGEN_SHIELD_FACTOR 0.2f // regen multiplier while the shield is held up
-#define STAMINA_REGEN_DEBT_RATE 0.5f     // per tick while in debt (~10/s, slower than an empty bar)
+#define STAMINA_REGEN_DELAY_FACTOR 0.35f               // regen multiplier during the post-spend pause
+#define STAMINA_REGEN_SHIELD_FACTOR 0.2f               // regen multiplier while the shield is held up
+#define STAMINA_REGEN_DEBT_RATE STAMINA_REGEN_PER_TICK // debt recovers at the normal rate, as in Dark Souls
 
 static float sStamina = (float)STAMINA_MAX_CHILD;
 static short sRegenDelay = 0;
@@ -59,7 +59,7 @@ void Stamina_Update(bool shielding) {
     }
 
     if (sStamina < 0.0f) {
-        // Climbing out of debt has its own fixed rate. It doesn't stack with the post-spend pause,
+        // Climbing out of debt runs at the full rate. It doesn't take the post-spend pause,
         // so a few rolls don't leave you stuck below zero.
         sStamina += STAMINA_REGEN_DEBT_RATE;
     } else if (sStamina < max) {

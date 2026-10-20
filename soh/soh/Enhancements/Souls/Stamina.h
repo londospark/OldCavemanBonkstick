@@ -9,7 +9,7 @@
 //
 // Stamina debt: an action is allowed while stamina is above zero, and can drive it negative down
 // to STAMINA_DEBT_FLOOR. While negative you can't roll, attack, block or raise the shield, and
-// recovery back above zero runs at its own fixed rate. Debt isn't drawn on the HUD (the bar just
+// recovery back above zero runs at the normal rate. Debt isn't drawn on the HUD (the bar just
 // sits empty), matching Dark Souls.
 
 #define STAMINA_MAX_CHILD 100
@@ -26,7 +26,7 @@
 // whether the stamina system is enabled
 bool Stamina_IsEnabled();
 
-// per-frame regeneration tick. Shielding slows regeneration a lot; debt recovers at its own rate.
+// per-frame regeneration tick. Shielding slows regeneration a lot; debt recovers at the full rate.
 void Stamina_Update(bool shielding);
 
 // refill to the current max and clear timers (file load, death)
