@@ -117,6 +117,9 @@ upstream enhancements (`Enhancements/TimeSavers/ImprovedRoll.cpp`, `Enhancements
     magic meter blue (via `R_MAGIC_FILL_COLOR`, reset every scene load so it's set each frame) so the
     two bars can't be confused; a Cosmetics Editor magic colour still wins.
   - `ClubBackModel.cpp`: removes the sword and sheath from Link's back models at runtime (below).
+  - `BossHealthBar.cpp`: Dark Souls-style boss bar (name + bar along the bottom, damage chunk that
+    drains). Bosses keep HP in `colChkInfo.health`, read as `s8` because some subtract past zero; the
+    max is the highest value seen since spawn. Only Queen Gohma has been checked in game.
 - Menu: Enhancements -> **Souls** (last entry in the sidebar), in `soh/soh/SohGui/SohMenuEnhancements.cpp`.
 - Small direct edits that aren't behaviour (kept minimal): the "Blonk" default file name in
   `z_file_choose.c` and its menu entry.

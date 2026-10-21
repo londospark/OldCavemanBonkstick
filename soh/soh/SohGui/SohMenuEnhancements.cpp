@@ -2233,6 +2233,13 @@ void SohMenu::AddMenuEnhancements() {
                     "Dark Souls-style stamina: rolling, club attacks and blocking consume stamina, and a stamina bar "
                     "is shown under the hearts. Holding the shield up slows recovery. A block you can't pay for breaks "
                     "your guard."));
+    AddWidget(path, "Boss Health Bar", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SOULS_BOSS_BAR_NAME)
+        .Options(CheckboxOptions()
+                     .DefaultValue(CVAR_SOULS_BOSS_BAR_DEFAULT)
+                     .Tooltip("A Dark Souls-style health bar with the boss's name along the bottom of the screen "
+                              "during boss fights. "
+                              "Damage shows as a lighter chunk that drains away. Hidden during cutscenes."));
     AddWidget(path, "Dark Souls Roll", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_SOULS_ROLL_NAME)
         .Options(
