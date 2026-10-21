@@ -4850,7 +4850,7 @@ s32 func_808382DC(Player* this, PlayState* play) {
                 return 0;
             }
 
-            if (this->cylinder.base.acFlags & AC_HIT) {
+            if ((this->cylinder.base.acFlags & AC_HIT) && GameInteractor_Should(VB_PLAYER_TAKE_BODY_HIT, true, this)) {
                 Actor* ac = this->cylinder.base.ac;
                 s32 sp4C;
 

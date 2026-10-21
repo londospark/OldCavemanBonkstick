@@ -95,7 +95,8 @@ upstream enhancements (`Enhancements/TimeSavers/ImprovedRoll.cpp`, `Enhancements
 | `VB_PLAYER_START_MELEE_ATTACK` | `Player_ActionHandler_7` | club attack stamina cost |
 | `VB_PLAYER_USE_HAMMER_ATTACKS` | `func_80837818` | club swings like the hammer |
 | `VB_PLAYER_DRAW_SWORD_TRAIL` | `func_800906D4` (`z_player_lib.c`) | no sword trail for the club |
-| `AfterInterfaceDrawMagicBar` | `Interface_Draw` | stamina bar |
+| `AfterInterfaceDrawMagicBar` | `Interface_Draw` | stamina bar, boss health bar |
+| `VB_PLAYER_TAKE_BODY_HIT` | `func_808382DC` | no contact damage |
 
 ## Where things live
 
@@ -117,6 +118,11 @@ upstream enhancements (`Enhancements/TimeSavers/ImprovedRoll.cpp`, `Enhancements
     magic meter blue (via `R_MAGIC_FILL_COLOR`, reset every scene load so it's set each frame) so the
     two bars can't be confused; a Cosmetics Editor magic colour still wins.
   - `ClubBackModel.cpp`: removes the sword and sheath from Link's back models at runtime (below).
+  - `ContactDamage.cpp`: ignores a body hit when the colliding part is also the enemy's hurtbox, the
+    enemy is still (speedXZ < 3, |vy| < 1) and the part moved < 4 units since the last frame. Part
+    positions are recorded from `colChkCtx.colAT` in `OnGameFrameUpdate`, which runs after actors register
+    next frame's hitboxes. Enemies like the Deku Baba only enable their hitbox while lunging, so their
+    hits are always attacks anyway; Gohma and her larvae keep theirs on, which is what this is for.
   - `BossHealthBar.cpp`: Dark Souls-style boss bar (name + bar along the bottom, damage chunk that
     drains). Bosses keep HP in `colChkInfo.health`, read as `s8` because some subtract past zero; the
     max is the highest value seen since spawn. Only Queen Gohma has been checked in game.

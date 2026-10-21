@@ -4288,6 +4288,16 @@ typedef enum {
     // ```c
     // true
     // ```
+    // Whether a hit to Link's body (not his shield) this frame hurts him (func_808382DC). Returning false
+    // ignores the hit; `this->cylinder.base.ac` and `this->cylinder.info.acHitInfo` say what hit him.
+    // #### `args`
+    // - `*Player`
+    VB_PLAYER_TAKE_BODY_HIT,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
     // Whether a B-button melee attack may start (Player_ActionHandler_7).
     // #### `args`
     // - `*Player`

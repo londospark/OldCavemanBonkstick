@@ -2233,6 +2233,13 @@ void SohMenu::AddMenuEnhancements() {
                     "Dark Souls-style stamina: rolling, club attacks and blocking consume stamina, and a stamina bar "
                     "is shown under the hearts. Holding the shield up slows recovery. A block you can't pay for breaks "
                     "your guard."));
+    AddWidget(path, "No Contact Damage", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SOULS_CONTACT_NAME)
+        .Options(CheckboxOptions()
+                     .DefaultValue(CVAR_SOULS_CONTACT_DEFAULT)
+                     .Tooltip("Bumping into an enemy that isn't attacking doesn't hurt. Bites, claws, weapons, "
+                              "projectiles, charges "
+                              "and anything jumping on you still do."));
     AddWidget(path, "Boss Health Bar", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_SOULS_BOSS_BAR_NAME)
         .Options(CheckboxOptions()
