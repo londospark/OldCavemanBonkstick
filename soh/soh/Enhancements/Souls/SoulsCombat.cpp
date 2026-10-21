@@ -11,6 +11,7 @@ extern "C" {
 #include "functions.h"
 extern PlayState* gPlayState;
 void Player_Action_Roll(Player* player, PlayState* play);
+void Player_Action_808502D0(Player* player, PlayState* play); // melee attack in progress
 void func_80837C0C(PlayState* play, Player* player, s32 damageResponseType, f32 speed, f32 yVelocity, s16 yRot,
                    s32 invincibilityTimer);
 }
@@ -64,6 +65,24 @@ static void RegisterSoulsClub() {
         Player* player = va_arg(args, Player*);
         if (SOULS_IS_SWORD_SLOT_HELD(player)) {
             *should = false;
+        }
+    });
+
+    // Plant Link's feet for the whole smash and its follow-through. The swing borrows the Megaton Hammer animation,
+    // whose root motion is authored from the hammer's own leaned-back stance: started from the sword stance it yanks
+    // Link ~7 units backwards (z -741 vs 0 in animation space) before lunging forward, which can walk him off a ledge.
+    // ANIM_FLAG_NOMOVE is one-shot (SkelAnime_UpdateTranslation clears it), so it's set every frame; OnPlayerUpdate
+    // runs before the queued move is applied.
+    COND_HOOK(OnPlayerUpdate, club, []() {
+        Player* player = GET_PLAYER(gPlayState);
+        // The follow-through runs as a separate action that keeps the root motion; it's marked by
+        // PLAYER_STATE3_FINISHED_ATTACKING, which clears when it ends or any other action starts.
+        const bool swinging =
+            (player->actionFunc == Player_Action_808502D0) || (player->stateFlags3 & PLAYER_STATE3_FINISHED_ATTACKING);
+        if (SOULS_IS_SWORD_SLOT_HELD(player) && swinging &&
+            ((player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_FORWARD) ||
+             (player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_SIDE))) {
+            player->skelAnime.movementFlags |= ANIM_FLAG_NOMOVE;
         }
     });
 }
