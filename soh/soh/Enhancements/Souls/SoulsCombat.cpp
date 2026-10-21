@@ -170,6 +170,28 @@ static RegisterShipInitFunc aimInitFunc(RegisterSoulsAim, { CVAR_SOULS_CLUB_NAME
 
 // MARK: - Reinforced Club
 
+// A club is slower than a sword, so it hits one weapon tier harder: the Kokiri-slot club deals Master
+// Sword damage and the Master-slot club deals Biggoron damage (2x, e.g. 1 -> 2 per smash on Gohma). Only
+// the sword damage flags move up a tier, never the Megaton Hammer's, so hammer-only objects (rusted
+// switches etc.) still need the real hammer.
+static const u32 kClubSlashFlags[] = { 0x00000200, 0x00000400 }; // Master slash, Giant slash
+static const u32 kClubJumpFlags[] = { 0x08000000, 0x04000000 };  // Master jump, Giant jump
+
+// After the impact (hammer_hit frame 6) the rest of the smash can't be cancelled, and the follow-through
+// locks Link's facing; both play faster so Link recovers sooner. The wind-up and impact are unchanged.
+#define CLUB_IMPACT_FRAME 6.0f
+#define CLUB_POST_IMPACT_SPEED 2.0f    // hammer_hit after the impact (normally 1.0)
+#define CLUB_FOLLOWTHROUGH_SPEED 2.25f // hammer_hit_end (normally 1.5)
+
+static void BoostClubDamage(Player* player) {
+    const bool strongClub = (player->heldItemAction != PLAYER_IA_SWORD_KOKIRI) && !Player_HoldsBrokenKnife(player);
+    const bool jump = (player->meleeWeaponAnimation >= PLAYER_MWA_FLIPSLASH_START) &&
+                      (player->meleeWeaponAnimation <= PLAYER_MWA_JUMPSLASH_FINISH);
+    const u32 flags = jump ? kClubJumpFlags[strongClub] : kClubSlashFlags[strongClub];
+    player->meleeWeaponQuads[0].info.toucher.dmgFlags = flags;
+    player->meleeWeaponQuads[1].info.toucher.dmgFlags = flags;
+}
+
 static bool IsMovingAttack(Player* player, s32 floorType) {
     return (player->controlStickDirections[player->controlStickDataIndex] > PLAYER_STICK_DIR_NONE) && (floorType != 7);
 }
@@ -228,14 +250,41 @@ static void RegisterSoulsClub() {
     // runs before the queued move is applied.
     COND_HOOK(OnPlayerUpdate, club, []() {
         Player* player = GET_PLAYER(gPlayState);
-        // The follow-through runs as a separate action that keeps the root motion; it's marked by
-        // PLAYER_STATE3_FINISHED_ATTACKING, which clears when it ends or any other action starts.
-        const bool swinging =
-            (player->actionFunc == Player_Action_808502D0) || (player->stateFlags3 & PLAYER_STATE3_FINISHED_ATTACKING);
-        if (SOULS_IS_SWORD_SLOT_HELD(player) && swinging &&
-            ((player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_FORWARD) ||
-             (player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_SIDE))) {
+        // The follow-through runs in a different action that keeps the root motion. It's the animation
+        // playing on the first frame after the smash ends (func_8083A098), and lasts until anything else
+        // plays; PLAYER_STATE3_FINISHED_ATTACKING can outlive it, so it isn't used.
+        static const void* sFollowThroughAnim = NULL;
+        static bool sWasSmashing = false;
+        const bool smashing = (player->actionFunc == Player_Action_808502D0);
+        if (smashing) {
+            sFollowThroughAnim = NULL;
+        } else if (sWasSmashing && (player->stateFlags3 & PLAYER_STATE3_FINISHED_ATTACKING)) {
+            // set together with the follow-through animation; anything else (a hit, a roll) cut it short
+            sFollowThroughAnim = player->skelAnime.animation;
+        } else if (player->skelAnime.animation != sFollowThroughAnim) {
+            sFollowThroughAnim = NULL;
+        }
+        sWasSmashing = smashing;
+        const bool followThrough = !smashing && (sFollowThroughAnim != NULL);
+        const bool swinging = smashing || followThrough;
+        if (!SOULS_IS_SWORD_SLOT_HELD(player)) {
+            return;
+        }
+        // Damage flags are stamped when an attack starts (func_80837948); raise them for every club attack,
+        // smash or leaping slam, before this frame's collision checks run.
+        if (player->meleeWeaponState != 0) {
+            BoostClubDamage(player);
+        }
+        if (swinging && ((player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_FORWARD) ||
+                         (player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_SIDE))) {
             player->skelAnime.movementFlags |= ANIM_FLAG_NOMOVE;
+            if (smashing) {
+                if (player->skelAnime.curFrame >= CLUB_IMPACT_FRAME) {
+                    player->skelAnime.playSpeed = CLUB_POST_IMPACT_SPEED;
+                }
+            } else {
+                player->skelAnime.playSpeed = CLUB_FOLLOWTHROUGH_SPEED;
+            }
         }
     });
 }

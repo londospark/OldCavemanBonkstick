@@ -107,6 +107,11 @@ upstream enhancements (`Enhancements/TimeSavers/ImprovedRoll.cpp`, `Enhancements
     because its root motion assumes the hammer stance and otherwise yanks Link backwards. The smash
     lands between hammer_hit frames 5 and 6, tip 45 units ahead (child) / 64 (adult); aim assist turns
     and steps Link toward his target during frames 0-5 and never steps onto floor at a different height.
+    The club hits one sword tier up (Kokiri slot -> Master Sword damage flags, Master slot -> Biggoron),
+    never the hammer's flags; the flags are re-stamped every active frame in `OnPlayerUpdate`. Post-impact
+    (frame 6+) plays at 2x and the follow-through at 2.25x. The follow-through is identified as the
+    animation that starts on the frame the smash ends with `PLAYER_STATE3_FINISHED_ATTACKING` set; that
+    flag alone can outlive it.
   - `StaminaBar.cpp`: the HUD bar, framed with the magic meter's own textures (follows the magic meter's
     HUD editor placement, fades with the hearts, never draws debt). While stamina is on it also turns the
     magic meter blue (via `R_MAGIC_FILL_COLOR`, reset every scene load so it's set each frame) so the
