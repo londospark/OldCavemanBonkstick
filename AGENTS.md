@@ -102,7 +102,11 @@ upstream enhancements (`Enhancements/TimeSavers/ImprovedRoll.cpp`, `Enhancements
 - `soh/soh/Enhancements/Souls/`
   - `Souls.h`: CVar names/defaults for the Souls features (`gEnhancements.Souls.*`).
   - `Stamina.{h,cpp}`: stamina state, costs and regen; resets on file load and on death.
-  - `SoulsCombat.cpp`: club, stamina-gated shield/roll/block, Dark Souls roll.
+  - `SoulsCombat.cpp`: club, stamina-gated shield/roll/block, Dark Souls roll, club aim assist. Club
+    swings play the Megaton Hammer animation with Link's feet planted (`ANIM_FLAG_NOMOVE` every frame),
+    because its root motion assumes the hammer stance and otherwise yanks Link backwards. The smash
+    lands between hammer_hit frames 5 and 6, tip 45 units ahead (child) / 64 (adult); aim assist turns
+    and steps Link toward his target during frames 0-5 and never steps onto floor at a different height.
   - `StaminaBar.cpp`: the HUD bar, framed with the magic meter's own textures (follows the magic meter's
     HUD editor placement, fades with the hearts, never draws debt). While stamina is on it also turns the
     magic meter blue (via `R_MAGIC_FILL_COLOR`, reset every scene load so it's set each frame) so the

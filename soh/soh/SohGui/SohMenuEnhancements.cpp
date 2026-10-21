@@ -2213,6 +2213,17 @@ void SohMenu::AddMenuEnhancements() {
                     "no sword trail, and no sword or sheath on Link's back. Turn off to return swords to vanilla "
                     "behaviour.\n\n"
                     "The club's model and icons are part of this build and stay either way."));
+    AddWidget(path, "Club Aim Assist", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SOULS_AIM_NAME)
+        .Options(
+            CheckboxOptions()
+                .DefaultValue(CVAR_SOULS_AIM_DEFAULT)
+                .Tooltip(
+                    "The club's overhead smash only hits what's straight in front of it. With this on, Link turns "
+                    "toward "
+                    "his target while winding up (your Z-target, or the nearest enemy in front) and takes a small step "
+                    "in if it's just out of reach. Never steps off a ledge. The leaping slam is aimed at the target "
+                    "too."));
     AddWidget(path, "Stamina System", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_SOULS_STAMINA_NAME)
         .Options(

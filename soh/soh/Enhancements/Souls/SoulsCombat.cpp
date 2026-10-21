@@ -10,6 +10,7 @@ extern "C" {
 #include "macros.h"
 #include "functions.h"
 extern PlayState* gPlayState;
+extern SaveContext gSaveContext;
 void Player_Action_Roll(Player* player, PlayState* play);
 void Player_Action_808502D0(Player* player, PlayState* play); // melee attack in progress
 void func_80837C0C(PlayState* play, Player* player, s32 damageResponseType, f32 speed, f32 yVelocity, s16 yRot,
@@ -17,6 +18,155 @@ void func_80837C0C(PlayState* play, Player* player, s32 damageResponseType, f32 
 }
 
 // OldCavemanBonkstick: Souls combat. Each block below only registers while its feature is on.
+
+// MARK: - Club aim assist
+
+// The overhead smash sweeps a thin vertical slice: between hammer_hit frames 5 and 6 the club drops from
+// overhead to the floor, then rests there until frame 10 (measured). Its tip lands 45 units ahead for
+// child Link and 64 for adult. Anything not in that slice is missed, even when locked on, so during the
+// wind-up Link turns toward his target (the Z-target, or the nearest enemy in front) and, if it's just
+// out of reach, takes a small step in. The leaping slam is aimed at the target the same way.
+#define AIM_CONE 0x3000            // +-67.5 degrees: enemies in front count without a lock-on
+#define AIM_EXTRA_RANGE 30.0f      // how far past the club's reach a target is still picked up
+#define AIM_MAX_HEIGHT 80.0f       // ignore enemies far above or below
+#define AIM_TURN_STEP 0x1000       // 22.5 degrees per frame of wind-up
+#define AIM_WINDUP_END 6.0f        // hammer_hit frame where the club comes down
+#define AIM_STEP_IN_PER_FRAME 3.0f // step-in speed
+#define AIM_STEP_IN_MAX 12.0f      // most a single swing will step in
+#define AIM_LEDGE_TOLERANCE 10.0f  // only step onto floor this close to Link's height
+
+static Actor* sAimTarget = NULL;
+static bool sAimSwingStarted = false;
+static f32 sAimSteppedIn = 0.0f;
+
+// Where the club tip lands at impact, minus a little so the head of the club connects, not the very tip.
+static f32 ClubReach() {
+    return LINK_IS_ADULT ? 55.0f : 38.0f;
+}
+
+static bool IsAimable(Player* player, Actor* actor) {
+    return (actor != NULL) && (actor != &player->actor) && (actor->update != NULL) &&
+           (fabsf(actor->world.pos.y - player->actor.world.pos.y) <= AIM_MAX_HEIGHT);
+}
+
+// Z-target first; otherwise the closest, most centred targetable enemy in front of Link.
+static Actor* FindAimTarget(Player* player) {
+    if (IsAimable(player, player->focusActor)) {
+        return player->focusActor;
+    }
+
+    Actor* best = NULL;
+    f32 bestScore = 0.0f;
+    for (s32 category : { ACTORCAT_ENEMY, ACTORCAT_BOSS }) {
+        for (Actor* actor = gPlayState->actorCtx.actorLists[category].head; actor != NULL; actor = actor->next) {
+            if (!IsAimable(player, actor) || !(actor->flags & ACTOR_FLAG_ATTENTION_ENABLED)) {
+                continue;
+            }
+            const s16 offAngle =
+                ABS((s16)(Actor_WorldYawTowardActor(&player->actor, actor) - player->actor.shape.rot.y));
+            const f32 gap = Actor_WorldDistXZToActor(&player->actor, actor) - actor->colChkInfo.cylRadius;
+            if ((offAngle > AIM_CONE) || (gap > ClubReach() + AIM_EXTRA_RANGE)) {
+                continue;
+            }
+            const f32 score = gap * (1.0f + (f32)offAngle / AIM_CONE);
+            if ((best == NULL) || (score < bestScore)) {
+                best = actor;
+                bestScore = score;
+            }
+        }
+    }
+    return best;
+}
+
+// The target can die or despawn mid-swing; only trust the pointer while it's still in an actor list.
+static bool IsStillSpawned(Actor* target) {
+    for (s32 category = 0; category < ACTORCAT_MAX; category++) {
+        for (Actor* actor = gPlayState->actorCtx.actorLists[category].head; actor != NULL; actor = actor->next) {
+            if (actor == target) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static void FaceActor(Player* player, s16 yaw) {
+    player->actor.shape.rot.y = yaw;
+    player->actor.world.rot.y = yaw;
+    player->yaw = yaw;
+}
+
+// Step toward the target, but never off a ledge: the floor at the new spot must be about Link's height.
+static void StepIn(Player* player, Actor* target) {
+    const f32 gap =
+        Actor_WorldDistXZToActor(&player->actor, target) - (target->colChkInfo.cylRadius * 0.5f) - ClubReach();
+    const f32 step = MIN(MIN(gap, AIM_STEP_IN_PER_FRAME), AIM_STEP_IN_MAX - sAimSteppedIn);
+    if (step <= 0.0f) {
+        return;
+    }
+
+    Vec3f probe = player->actor.world.pos;
+    probe.x += Math_SinS(player->actor.shape.rot.y) * step;
+    probe.z += Math_CosS(player->actor.shape.rot.y) * step;
+    probe.y += 30.0f;
+    CollisionPoly* poly;
+    s32 bgId;
+    const f32 floorY = BgCheck_EntityRaycastFloor3(&gPlayState->colCtx, &poly, &bgId, &probe);
+    if ((floorY <= BGCHECK_Y_MIN) || (fabsf(floorY - player->actor.world.pos.y) > AIM_LEDGE_TOLERANCE)) {
+        return;
+    }
+
+    player->actor.world.pos.x = probe.x;
+    player->actor.world.pos.z = probe.z;
+    sAimSteppedIn += step;
+}
+
+static bool IsClubSmashWindup(Player* player) {
+    return SOULS_IS_SWORD_SLOT_HELD(player) && (player->actionFunc == Player_Action_808502D0) &&
+           ((player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_FORWARD) ||
+            (player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_SIDE)) &&
+           (player->skelAnime.curFrame < AIM_WINDUP_END);
+}
+
+static void AimLeapAtTarget(Player* player) {
+    if (!CVAR_SOULS_AIM_VALUE) {
+        return;
+    }
+    Actor* target = FindAimTarget(player);
+    if (target != NULL) {
+        FaceActor(player, Actor_WorldYawTowardActor(&player->actor, target));
+    }
+}
+
+static void RegisterSoulsAim() {
+    sAimTarget = NULL;
+    sAimSwingStarted = false;
+
+    COND_HOOK(OnPlayerUpdate, CVAR_SOULS_CLUB_VALUE && CVAR_SOULS_AIM_VALUE, []() {
+        Player* player = GET_PLAYER(gPlayState);
+        if (!IsClubSmashWindup(player)) {
+            sAimSwingStarted = false;
+            sAimTarget = NULL;
+            return;
+        }
+        if (!sAimSwingStarted) {
+            sAimSwingStarted = true;
+            sAimTarget = FindAimTarget(player);
+            sAimSteppedIn = 0.0f;
+        }
+        if ((sAimTarget == NULL) || !IsStillSpawned(sAimTarget)) {
+            sAimTarget = NULL;
+            return;
+        }
+
+        s16 yaw = player->actor.shape.rot.y;
+        Math_ScaledStepToS(&yaw, Actor_WorldYawTowardActor(&player->actor, sAimTarget), AIM_TURN_STEP);
+        FaceActor(player, yaw);
+        StepIn(player, sAimTarget);
+    });
+}
+
+static RegisterShipInitFunc aimInitFunc(RegisterSoulsAim, { CVAR_SOULS_CLUB_NAME, CVAR_SOULS_AIM_NAME });
 
 // MARK: - Reinforced Club
 
@@ -43,6 +193,9 @@ static void RegisterSoulsClub() {
         s32 floorType = va_arg(args, s32);
         if (SOULS_IS_SWORD_SLOT_HELD(player) && IsMovingAttack(player, floorType)) {
             *should = Stamina_TrySpendJumpAttack();
+            if (*should) {
+                AimLeapAtTarget(player); // the leap goes where Link faces (func_8083BA90)
+            }
         }
     });
 
