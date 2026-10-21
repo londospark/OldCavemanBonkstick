@@ -28,6 +28,10 @@
 #define CVAR_SOULS_CONTACT_DEFAULT 1
 #define CVAR_SOULS_CONTACT_VALUE CVarGetInteger(CVAR_SOULS_CONTACT_NAME, CVAR_SOULS_CONTACT_DEFAULT)
 
+#define CVAR_SOULS_AIM_CAMERA_NAME "gEnhancements.Souls.AimWithCamera"
+#define CVAR_SOULS_AIM_CAMERA_DEFAULT 1
+#define CVAR_SOULS_AIM_CAMERA_VALUE CVarGetInteger(CVAR_SOULS_AIM_CAMERA_NAME, CVAR_SOULS_AIM_CAMERA_DEFAULT)
+
 // True when `player` is holding a sword-slot item (Kokiri / Master / Biggoron), which the
 // Reinforced Club replaces. Callers check CVAR_SOULS_CLUB_VALUE themselves (usually by only
 // registering their hook while it is on).

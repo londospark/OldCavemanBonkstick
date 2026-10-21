@@ -123,6 +123,9 @@ upstream enhancements (`Enhancements/TimeSavers/ImprovedRoll.cpp`, `Enhancements
     positions are recorded from `colChkCtx.colAT` in `OnGameFrameUpdate`, which runs after actors register
     next frame's hitboxes. Enemies like the Deku Baba only enable their hitbox while lunging, so their
     hits are always attacks anyway; Gohma and her larvae keep theirs on, which is what this is for.
+  - `AimWithCamera.cpp`: on the frame `player->unk_6AD` goes 0 -> 1/2 (entering C-Up / item aiming), turns
+    Link to the camera's yaw. First person derives Link's facing from `actor.focus.rot.y`, so that is set
+    too. Skipped while Z-targeting or on Epona.
   - `BossHealthBar.cpp`: Dark Souls-style boss bar (name + bar along the bottom, damage chunk that
     drains). Bosses keep HP in `colChkInfo.health`, read as `s8` because some subtract past zero; the
     max is the highest value seen since spawn. Only Queen Gohma has been checked in game.

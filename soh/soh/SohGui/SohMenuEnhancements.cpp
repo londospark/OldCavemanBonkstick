@@ -2240,6 +2240,16 @@ void SohMenu::AddMenuEnhancements() {
                      .Tooltip("Bumping into an enemy that isn't attacking doesn't hurt. Bites, claws, weapons, "
                               "projectiles, charges "
                               "and anything jumping on you still do."));
+    AddWidget(path, "Aim Where the Camera Looks", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SOULS_AIM_CAMERA_NAME)
+        .Options(
+            CheckboxOptions()
+                .DefaultValue(CVAR_SOULS_AIM_CAMERA_DEFAULT)
+                .Tooltip(
+                    "When you go into first person (C-Up, or drawing the slingshot, bow or hookshot), Link turns to "
+                    "face the "
+                    "way the camera is looking first, instead of wherever he happened to be facing. Handy with a free "
+                    "camera. Not while Z-targeting or riding Epona."));
     AddWidget(path, "Boss Health Bar", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_SOULS_BOSS_BAR_NAME)
         .Options(CheckboxOptions()
