@@ -141,6 +141,37 @@ upstream enhancements (`Enhancements/TimeSavers/ImprovedRoll.cpp`, `Enhancements
 cmake --build build-cmake -j$(nproc)
 ```
 
+Local builds treat warnings as errors, because CI does. Windows is compiled with MSVC `/W3 /WX`
+(`soh/CMakeLists.txt`), so anything MSVC grumbles about is a red build even when GCC was happy. The
+Linux/Clang branch therefore runs with `-Werror` and `-Wfloat-conversion`, and our own sources
+(`Enhancements/Souls/*.cpp`) additionally with `-Wconversion` — the only way GCC reports the implicit
+`int`→`float` conversions that MSVC fails on.
+
+That is how the Windows build broke while Linux stayed green: `StaminaBar.cpp` fed `s32` CVar offsets
+into the `float`-pixel HUD anchor helpers and stored the `float` results in `s16`, which is `C4244` on
+MSVC. When arithmetic changes type:
+
+- Compute in the natural type (`s32`, `f32`) and convert **once**, at the boundary where the other
+  type is unavoidable, inside a named helper — see `AnchoredColumn()` and `StaminaBarFrame` in
+  `StaminaBar.cpp`. Do not sprinkle casts through every branch; that is how the bug got in.
+- Vanilla's HUD/draw APIs are 16-bit (`s16` rects, `u8` alphas). Passing `int` expressions to them is
+  fine; a `float`→`int` or `u16`→`u8` narrowing needs an explicit conversion with a comment.
+- `-Wconversion` is deliberately not project-wide: upstream code and vanilla's `s16` HUD APIs fail it
+  in hundreds of files. Only our sources have to be clean, so keep new type-mixing logic out of
+  `soh/src/**` (see the hook rule) and it stays enforced.
+- Upstream `kaleido.cpp` and `nametag.cpp` swap `calloc`'s arguments and GCC 14 warns about it; that
+  single warning is carved out in CMake. Don't widen the carve-out — fix new code properly.
+
+### Editor / LSP
+
+`clangd` (and OpenCode's LSP) needs the compile database: there is a gitignored `compile_commands.json`
+symlink at the repo root pointing at `build-cmake/compile_commands.json`, so it is found from any
+source file. Generate it after a fresh configure:
+
+```bash
+cmake -S . -B build-cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+```
+
 The binary is `build-cmake/soh/soh.elf`. To test without touching your own saves and mods, point
 `SHIP_HOME` at a scratch folder containing (symlinks to) `oot.o2r` and a `mods/` folder with whatever
 you want to test, e.g. with and without a texture pack:
@@ -153,4 +184,5 @@ SHIP_HOME=/tmp/soh-test build-cmake/soh/soh.elf
 Logs go to `$SHIP_HOME/logs/`. The Souls features log what they set up there (e.g.
 `[Souls] Removed N sword/sheath triangle commands from Link's back models`).
 
-Format C/C++ with `./run-clang-format.sh` before committing.
+Format C/C++ before committing. `./run-clang-format.sh` wants `clang-format-14`; if only a newer
+binary is installed, pass it explicitly: `CLANG_FORMAT=clang-format ./run-clang-format.sh`.

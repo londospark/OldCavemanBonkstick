@@ -566,7 +566,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
         endif()
 
         target_compile_options(${PROJECT_NAME} PRIVATE
-            -Wall -Wextra -Wno-error
+            -Wall -Wextra -Werror
             -Wformat-security
             -Wno-unused-parameter
             -Wno-unused-function
@@ -576,6 +576,10 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
             -Wno-narrowing
             -Wno-missing-braces
             -Wno-unknown-pragmas # #pragma region is an editor folding marker, GCC doesn't know it
+            # OldCavemanBonkstick: CI builds Windows with MSVC /W3 /WX, so a warning there fails the build
+            # while Linux stayed green. -Wfloat-conversion is the GCC/Clang equivalent of MSVC's C4244 for
+            # implicit int<->float conversions, the class that broke the Windows build (StaminaBar.cpp).
+            -Wfloat-conversion
             $<$<COMPILE_LANGUAGE:C>:
                 -Werror-implicit-function-declaration
                 -Wno-implicit-int
@@ -587,6 +591,18 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
             -pthread
         ${CPU_OPTION}
         )
+
+        # Upstream kaleido.cpp and nametag.cpp swap calloc's arguments; GCC 14 flags that by default. Keep our
+        # -Werror without having to patch vanilla code for it.
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14)
+            target_compile_options(${PROJECT_NAME} PRIVATE -Wno-error=calloc-transposed-args)
+        endif()
+
+        # OldCavemanBonkstick: our own sources must also be clean under -Wconversion, which is the only way
+        # GCC reports the implicit int->float conversions that MSVC fails the Windows build on (C4244).
+        # Upstream code is nowhere near conversion-clean, so this is scoped to the Souls features.
+        file(GLOB SOH_SOULS_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/soh/Enhancements/Souls/*.cpp")
+        set_source_files_properties(${SOH_SOULS_SOURCES} PROPERTIES COMPILE_OPTIONS "-Wconversion;-Wfloat-conversion")
 
         target_link_options(${PROJECT_NAME} PRIVATE
             -pthread

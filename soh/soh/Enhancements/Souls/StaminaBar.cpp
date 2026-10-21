@@ -11,9 +11,8 @@ extern "C" {
 #include "functions.h"
 #include "variables.h"
 #include "textures/parameter_static/parameter_static.h"
-float OTRGetDimensionFromLeftEdge(float v);
-float OTRGetDimensionFromRightEdge(float v);
 int16_t OTRGetRectDimensionFromLeftEdge(float v);
+int16_t OTRGetRectDimensionFromRightEdge(float v);
 Gfx* Gfx_TextureIA8(Gfx* displayListHead, void* texture, s16 textureWidth, s16 textureHeight, s16 rectLeft, s16 rectTop,
                     s16 rectWidth, s16 rectHeight, u16 dsdx, u16 dtdy);
 void FrameInterpolation_RecordOpenChild(const void* a, int b);
@@ -41,52 +40,75 @@ static const Color_RGB8 kStaminaBorder = { 255, 255, 255 }; // the magic meter's
 static const Color_RGB8 kMagicBlue = { 30, 100, 255 };
 static const Color_RGB8 kMagicGreen = { 0, 200, 0 }; // vanilla R_MAGIC_FILL_COLOR (z_construct.c)
 
-// Top-left of the bar's frame, mirroring Interface_DrawMagicBar's position rules.
-static void GetStaminaBarPos(s16* x, s16* y) {
-    const s16 magicDrop = R_MAGIC_BAR_LARGE_Y - R_MAGIC_BAR_SMALL_Y + 2;
+// Top-left of the bar's frame. HUD columns and rows are 16-bit, matching the gfx rectangles the bar is
+// drawn with.
+struct StaminaBarFrame {
+    s16 x;
+    s16 y;
+};
+
+// The magic meter's HUD editor stores whole-pixel offsets from a screen edge, but the OTR anchor
+// helpers apply the aspect ratio in float pixels. This is the only place the two meet: the rect
+// helpers already floor the float result for us, which also keeps the bar on the same pixel grid as
+// the magic meter's own "original location" slot. Everything downstream stays in whole pixels.
+static s32 AnchoredColumn(bool fromRight, s32 offset) {
+    const f32 offsetPx = (f32)offset; // CVar offsets are ints; the anchor helpers take float pixels
+    return fromRight ? OTRGetRectDimensionFromRightEdge(offsetPx) : OTRGetRectDimensionFromLeftEdge(offsetPx);
+}
+
+// Mirrors Interface_DrawMagicBar's placement rules: same anchors, same margins, same slot under the
+// hearts. The offsets come from int CVars and int magic-meter registers, so the arithmetic stays in
+// ints and narrows once, on the way out.
+static StaminaBarFrame GetStaminaBarFrame() {
+    const s32 magicDrop = R_MAGIC_BAR_LARGE_Y - R_MAGIC_BAR_SMALL_Y + 2;
     const s32 lineLength = CVarGetInteger(CVAR_COSMETIC("HUD.Hearts.LineLength"), 10);
     const s32 heartRows = (lineLength == 0) ? 0 : (gSaveContext.healthCapacity - 1) / (0x10 * lineLength);
     const bool useMargins = CVarGetInteger(CVAR_COSMETIC("HUD.MagicBar.UseMargins"), 0) != 0;
     const s32 posType = CVarGetInteger(CVAR_COSMETIC("HUD.MagicBar.PosType"), ORIGINAL_LOCATION);
     const s32 posX = CVarGetInteger(CVAR_COSMETIC("HUD.MagicBar.PosX"), 0);
-    const s16 yMargin = useMargins ? -Top_HUD_Margin : 0;
+    const s32 posY = CVarGetInteger(CVAR_COSMETIC("HUD.MagicBar.PosY"), 0);
+    const s32 leftMargin = useMargins ? Left_HUD_Margin : 0;
+    const s32 rightMargin = useMargins ? Right_HUD_Margin : 0;
+    const s32 topMargin = useMargins ? -Top_HUD_Margin : 0;
+
+    s32 x = 0;
+    s32 y = 0;
 
     switch (posType) {
         case ANCHOR_LEFT:
-            *x = OTRGetDimensionFromLeftEdge(posX + (useMargins ? Left_HUD_Margin : 0));
-            *y = CVarGetInteger(CVAR_COSMETIC("HUD.MagicBar.PosY"), 0) + yMargin;
+            x = AnchoredColumn(false, posX + leftMargin);
+            y = posY + topMargin;
             break;
         case ANCHOR_RIGHT:
-            *x = OTRGetDimensionFromRightEdge(posX + (useMargins ? Right_HUD_Margin : 0));
-            *y = CVarGetInteger(CVAR_COSMETIC("HUD.MagicBar.PosY"), 0) + yMargin;
+            x = AnchoredColumn(true, posX + rightMargin);
+            y = posY + topMargin;
             break;
         case ANCHOR_NONE:
-            *x = posX + (useMargins ? Left_HUD_Margin : 0);
-            *y = CVarGetInteger(CVAR_COSMETIC("HUD.MagicBar.PosY"), 0) + yMargin;
+            x = posX + leftMargin;
+            y = posY + topMargin;
             break;
         case ANCHOR_TO_LIFE_METER:
-            *x = posX + getHealthMeterXOffset() + R_MAGIC_BAR_X - 1;
-            *y = R_MAGIC_BAR_SMALL_Y - 2 + magicDrop * heartRows +
-                 CVarGetInteger(CVAR_COSMETIC("HUD.MagicBar.PosY"), 0) + getHealthMeterYOffset();
+            x = posX + getHealthMeterXOffset() + R_MAGIC_BAR_X - 1;
+            y = R_MAGIC_BAR_SMALL_Y - 2 + magicDrop * heartRows + posY + getHealthMeterYOffset();
             break;
         default: // ORIGINAL_LOCATION, or the magic meter is hidden: use the original slot under the hearts.
-            *x = OTRGetRectDimensionFromLeftEdge(R_MAGIC_BAR_X + (useMargins ? Left_HUD_Margin : 0));
-            *y = (heartRows >= 1) ? R_MAGIC_BAR_LARGE_Y + yMargin + magicDrop * (heartRows - 1)
-                                  : R_MAGIC_BAR_SMALL_Y + yMargin;
+            x = AnchoredColumn(false, R_MAGIC_BAR_X + leftMargin);
+            y = (heartRows >= 1) ? R_MAGIC_BAR_LARGE_Y + topMargin + magicDrop * (heartRows - 1)
+                                 : R_MAGIC_BAR_SMALL_Y + topMargin;
             break;
     }
 
     if ((gSaveContext.magicLevel != 0) && (posType != HIDDEN)) {
-        *y += STAMINA_BAR_MAGIC_GAP;
+        y += STAMINA_BAR_MAGIC_GAP;
     }
+
+    return { (s16)x, (s16)y };
 }
 
 static void DrawStaminaBar(bool fullUi) {
     PlayState* play = gPlayState;
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
     s32 stamina = Stamina_Get();
-    s16 x;
-    s16 y;
 
     // Same visibility as the hearts, plus whenever the bar isn't full so Minimal UI still shows it in a fight.
     if (!fullUi && (gSaveContext.health == gSaveContext.healthCapacity) && (stamina >= Stamina_GetMax())) {
@@ -100,14 +122,19 @@ static void DrawStaminaBar(bool fullUi) {
     if (stamina < 0) {
         stamina = 0;
     }
-    s16 fill = (s16)((STAMINA_BAR_WIDTH * stamina) / Stamina_GetMax());
+    s32 fill = (STAMINA_BAR_WIDTH * stamina) / Stamina_GetMax();
     if (fill > STAMINA_BAR_WIDTH) {
         fill = STAMINA_BAR_WIDTH;
     }
-    const u8 alpha = interfaceCtx->healthAlpha;
+    // healthAlpha is a u16 that never holds more than a byte, and the gfx macros take a u8.
+    const u8 alpha = (u8)interfaceCtx->healthAlpha;
 
-    GetStaminaBarPos(&x, &y);
-    const s16 fillX = x + (R_MAGIC_FILL_X - R_MAGIC_BAR_X);
+    const StaminaBarFrame frame = GetStaminaBarFrame();
+    const s32 fillX = frame.x + (R_MAGIC_FILL_X - R_MAGIC_BAR_X);
+    // The gfx rectangles are 16-bit as well, so the derived edges are computed in that space.
+    const s16 midX = (s16)(frame.x + 8);
+    const s16 capX = (s16)(frame.x + STAMINA_BAR_WIDTH + 8);
+    const s16 capEndX = (s16)(frame.x + STAMINA_BAR_WIDTH + 16);
 
     OPEN_DISPS(play->state.gfxCtx);
 
@@ -116,13 +143,14 @@ static void DrawStaminaBar(bool fullUi) {
     // Frame: the magic meter's left cap, stretched middle, and mirrored right cap.
     gDPSetPrimColor(OVERLAY_DISP++, 0, 0, kStaminaBorder.r, kStaminaBorder.g, kStaminaBorder.b, alpha);
     gDPSetEnvColor(OVERLAY_DISP++, 100, 50, 50, 255);
-    OVERLAY_DISP = Gfx_TextureIA8(OVERLAY_DISP, (void*)gMagicMeterEndTex, 8, 16, x, y, 8, 16, 1 << 10, 1 << 10);
-    OVERLAY_DISP = Gfx_TextureIA8(OVERLAY_DISP, (void*)gMagicMeterMidTex, 24, 16, x + 8, y, STAMINA_BAR_WIDTH, 16,
+    OVERLAY_DISP =
+        Gfx_TextureIA8(OVERLAY_DISP, (void*)gMagicMeterEndTex, 8, 16, frame.x, frame.y, 8, 16, 1 << 10, 1 << 10);
+    OVERLAY_DISP = Gfx_TextureIA8(OVERLAY_DISP, (void*)gMagicMeterMidTex, 24, 16, midX, frame.y, STAMINA_BAR_WIDTH, 16,
                                   1 << 10, 1 << 10);
     gDPLoadTextureBlock(OVERLAY_DISP++, gMagicMeterEndTex, G_IM_FMT_IA, G_IM_SIZ_8b, 8, 16, 0, G_TX_MIRROR | G_TX_WRAP,
                         G_TX_NOMIRROR | G_TX_WRAP, 3, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    gSPWideTextureRectangle(OVERLAY_DISP++, (x + STAMINA_BAR_WIDTH + 8) << 2, y << 2, (x + STAMINA_BAR_WIDTH + 16) << 2,
-                            (y + 16) << 2, G_TX_RENDERTILE, 256, 0, 1 << 10, 1 << 10);
+    gSPWideTextureRectangle(OVERLAY_DISP++, capX << 2, frame.y << 2, capEndX << 2, (frame.y + 16) << 2, G_TX_RENDERTILE,
+                            256, 0, 1 << 10, 1 << 10);
 
     // Fill, drawn the same way as the magic fill.
     if (fill > 0) {
@@ -134,8 +162,8 @@ static void DrawStaminaBar(bool fullUi) {
         gDPLoadMultiBlock_4b(OVERLAY_DISP++, gMagicMeterFillTex, 0, G_TX_RENDERTILE, G_IM_FMT_I, 16, 16, 0,
                              G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
                              G_TX_NOLOD);
-        gSPWideTextureRectangle(OVERLAY_DISP++, fillX << 2, (y + 3) << 2, (fillX + fill) << 2, (y + 10) << 2,
-                                G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
+        gSPWideTextureRectangle(OVERLAY_DISP++, fillX << 2, (frame.y + 3) << 2, (fillX + fill) << 2,
+                                (frame.y + 10) << 2, G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
     }
 
     CLOSE_DISPS(play->state.gfxCtx);

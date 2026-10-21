@@ -103,7 +103,8 @@ static void RegisterSoulsShield() {
         Actor* attacker = player->shieldQuad.base.ac;
         s16 knockbackYaw = (attacker != NULL) ? Actor_WorldYawTowardActor(attacker, &player->actor)
                                               : (s16)(player->actor.shape.rot.y + 0x8000);
-        player->actor.colChkInfo.damage = MAX(1, damage / 4);
+        // colChkInfo.damage is a byte; a quarter of the hit, but never zero.
+        player->actor.colChkInfo.damage = (u8)MAX(1, damage / 4);
         func_80837C0C(play, player, PLAYER_HIT_RESPONSE_KNOCKBACK_SMALL, 4.0f, 5.0f, knockbackYaw, 20);
     });
 
