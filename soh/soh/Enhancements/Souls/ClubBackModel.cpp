@@ -81,20 +81,35 @@ static bool UpdateStripFromTexture(uint64_t hash, bool strip) {
     return (strstr(name, "Sheath") != nullptr) || (strstr(name, "Sword") != nullptr);
 }
 
+// Vanilla back models load their vertices from Link's shared object vertex buffers. A model exported from
+// a tool (Fast64 etc.) brings its own vertex resources instead, and doesn't always set IsCustom, so this is
+// how a replaced model is recognised and left alone.
+static bool IsVanillaVertexBuffer(uint64_t hash) {
+    const char* name = ResourceGetNameByCrc(hash);
+    return (name != nullptr) &&
+           ((strstr(name, "object_link_childVtx_") != nullptr) || (strstr(name, "object_link_boyVtx_") != nullptr));
+}
+
 static void RemoveSheathFromBack() {
     if (!sPatches.empty()) {
         return;
     }
 
+    int replacedByMod = 0;
     for (const char* dlName : sBackDLs) {
         auto dl = std::static_pointer_cast<Fast::DisplayList>(
             Ship::Context::GetRawInstance()->GetResourceManager()->LoadResource(dlName));
-        if (dl == nullptr || dl->GetInitData()->IsCustom) {
+        if (dl == nullptr) {
+            continue;
+        }
+        if (dl->GetInitData()->IsCustom) {
+            replacedByMod++;
             continue;
         }
 
         std::vector<int> triangles;
         bool strip = false;
+        bool vanilla = true;
         for (size_t i = 0; i < dl->Instructions.size(); i++) {
             const Gfx* gfx = (const Gfx*)&dl->Instructions[i];
             const uint8_t opcode = (gfx->words.w0 >> 24) & 0xFF;
@@ -104,15 +119,24 @@ static void RemoveSheathFromBack() {
                 if (i + 1 >= dl->Instructions.size()) {
                     break;
                 }
+                const Gfx* hashWords = gfx + 1;
+                const uint64_t hash = ((uint64_t)hashWords->words.w0 << 32) | (uint32_t)hashWords->words.w1;
+                if (opcode == kOpVtxOtrHash && !IsVanillaVertexBuffer(hash)) {
+                    vanilla = false;
+                    break;
+                }
                 if (opcode == kOpSetTImgOtrHash) {
-                    const Gfx* hashWords = gfx + 1;
-                    strip = UpdateStripFromTexture(
-                        ((uint64_t)hashWords->words.w0 << 32) | (uint32_t)hashWords->words.w1, strip);
+                    strip = UpdateStripFromTexture(hash, strip);
                 }
                 i++;
             } else if (strip && (opcode == kOpTri1 || opcode == kOpTri2 || opcode == kOpQuad)) {
                 triangles.push_back((int)i);
             }
+        }
+
+        if (!vanilla) {
+            replacedByMod++;
+            continue;
         }
 
         for (int index : triangles) {
@@ -123,6 +147,17 @@ static void RemoveSheathFromBack() {
     }
 
     SPDLOG_INFO("[Souls] Removed {} sword/sheath triangle commands from Link's back models", sPatches.size());
+
+    // The usual cause is a leftover reinforced_club_back.o2r (the old Fast64 back models, which draw the
+    // shield torn into shards) in a mods folder. Say so once rather than on every scene load.
+    static bool sWarnedReplaced = false;
+    if ((replacedByMod > 0) && !sWarnedReplaced) {
+        sWarnedReplaced = true;
+        SPDLOG_WARN("[Souls] {} of Link's back models are replaced by a mod, so they keep whatever that mod draws. "
+                    "If the shield on Link's back looks torn, delete reinforced_club_back.o2r from the mods folder "
+                    "(the one next to soh.elf if you launch from a folder that has its own oot.o2r).",
+                    replacedByMod);
+    }
 }
 
 static void RestoreSheathOnBack() {

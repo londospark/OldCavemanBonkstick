@@ -132,8 +132,13 @@ upstream enhancements (`Enhancements/TimeSavers/ImprovedRoll.cpp`, `Enhancements
   Reloaded apply to the shield on Link's back), keeps the low-detail Far models, and restores the vanilla
   back when the club is turned off. Prefer this approach for "hide part of a vanilla model" changes; ship
   an `.o2r` only for genuinely new geometry.
-- If an old `reinforced_club_back.o2r` is still in a mods folder it overrides the back models and the
-  patch skips them (custom assets are never patched). Delete it.
+- If an old `reinforced_club_back.o2r` is still in a mods folder it overrides the back models (drawing the
+  shield torn into shards) and the patch skips them. Delete it. The patch only touches back models that
+  load vertices from Link's own `object_link_*Vtx_*` buffers, because tool-exported models don't always
+  set `IsCustom`; it logs `[Souls] N of Link's back models are replaced by a mod` once when it skips any.
+- Which `mods/` folder is used: SoH runs "portable" from the launch folder when that folder has its own
+  `oot.o2r` / `shipofharkinian.json` (e.g. `build-cmake/soh/` after a dev run), and then reads the
+  `mods/` folder next to `soh.elf`, not `~/.local/share/soh/mods`. Check both for stale archives.
 
 ## Building and testing (Linux)
 
